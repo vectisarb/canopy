@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canopy — Arborist Job Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bark: #2C1A0E;
+    --bark-mid: #4A2E18;
+    --bark-light: #7A5230;
+    --moss: #3A5C2E;
+    --moss-light: #5A8A48;
+    --moss-pale: #C8DFC0;
+    --leaf: #8AB87A;
+    --cream: #F5F0E8;
+    --cream-dark: #EDE5D4;
+    --amber: #D4891A;
+    --amber-light: #F0B44C;
+    --sky: #4A7A9B;
+    --red: #C0392B;
+    --red-light: #E8A89E;
+    --text: #1A0F08;
+    --text-mid: #5C3D26;
+    --text-light: #8C6845;
+    --border: rgba(74,46,24,0.15);
+    --shadow: 0 2px 12px rgba(44,26,14,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--bark);
+    color: var(--cream);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--moss);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .btn-primary {
+    background: var(--moss);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--moss-light); }
+
+  /* STATS BAR */
+  .stats-bar {
+    background: var(--bark-mid);
+    padding: 12px 2rem;
+    display: flex;
+    gap: 2rem;
+    color: var(--cream);
+    overflow-x: auto;
+  }
+  .stat { text-align: center; min-width: 80px; }
+  .stat-num { font-family: 'DM Serif Display', serif; font-size: 24px; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--moss-pale); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* MAIN LAYOUT */
+  .main { padding: 1.5rem 2rem; max-width: 1300px; margin: 0 auto; }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar input[type=text] {
+    flex: 1;
+    min-width: 180px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .filter-bar input[type=text]:focus { border-color: var(--bark-light); }
+  .filter-btn {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-mid);
+    transition: all 0.15s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: var(--bark);
+    color: var(--cream);
+    border-color: var(--bark);
+  }
+
+  /* BOARD */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  @media (max-width: 1100px) { .board { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .board { grid-template-columns: 1fr; } }
+
+  .column {
+    background: var(--cream-dark);
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+  .col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-title {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .col-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+  }
+  .dot-quoted { background: #9B6BB5; }
+  .dot-pending { background: var(--amber); }
+  .dot-scheduled { background: var(--sky); }
+  .dot-done { background: var(--moss); }
+  .col-count {
+    font-size: 12px;
+    background: rgba(44,26,14,0.1);
+    padding: 2px 8px;
+    border-radius: 20px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  /* JOB CARDS */
+  .job-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.15s;
+    position: relative;
+  }
+  .job-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+  .job-card.overdue { border-left: 3px solid var(--red); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .customer-name { font-weight: 600; font-size: 14px; color: var(--text); }
+  .job-type-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-pruning { background: #E8F5E0; color: #2E5C22; }
+  .badge-felling { background: #FDF0DC; color: #7A4C00; }
+  .badge-survey { background: #E0EEF8; color: #1A4F70; }
+  .badge-stump { background: #F0E8F8; color: #4A1F7A; }
+  .badge-hedge { background: #E8F8F0; color: #1A5C3A; }
+  .badge-other { background: var(--cream-dark); color: var(--text-mid); }
+
+  .card-address { font-size: 12px; color: var(--text-light); margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+  .card-notes { font-size: 12px; color: var(--text-mid); background: var(--cream); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; line-height: 1.5; font-style: italic; }
+  .card-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .quote-val { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--moss); }
+  .invoice-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500;
+  }
+  .inv-unpaid { background: var(--red-light); color: var(--red); }
+  .inv-invoiced { background: #FDE8C0; color: #7A4C00; }
+  .inv-paid { background: var(--moss-pale); color: var(--moss); }
+  .inv-quoted { background: #E0EEF8; color: var(--sky); }
+  .followup-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-light); margin-top: 6px; }
+  .followup-row.overdue-text { color: var(--red); font-weight: 500; }
+
+  .empty-col { text-align: center; color: var(--text-light); padding: 24px 0; font-size: 13px; font-style: italic; }
+
+  /* MODAL */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(44,26,14,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2rem;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(44,26,14,0.25);
+  }
+  .modal h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    margin-bottom: 1.5rem;
+    color: var(--bark);
+  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-mid); }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--bark-light); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 1.5rem; justify-content: flex-end; }
+  .btn-cancel {
+    padding: 9px 20px; border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .btn-cancel:hover { background: var(--cream); }
+  .btn-danger {
+    padding: 9px 16px; border: 1px solid var(--red); border-radius: 8px;
+    background: transparent; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--red); margin-right: auto;
+  }
+  .btn-danger:hover { background: #fff0ee; }
+  .close-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--cream-dark); border: none; width: 30px; height: 30px;
+    border-radius: 50%; cursor: pointer; font-size: 16px; color: var(--text-mid);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .close-btn:hover { background: var(--border); }
+
+  /* VIEW MODAL extra */
+  .view-section { margin-bottom: 1.25rem; }
+  .view-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-light); margin-bottom: 4px; }
+  .view-val { font-size: 15px; color: var(--text); }
+  .view-val.big { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--moss); }
+  .view-notes-box { background: var(--cream); padding: 10px 14px; border-radius: 8px; font-size: 13px; color: var(--text-mid); line-height: 1.6; font-style: italic; }
+  .view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .status-select-inline {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; background: #fff;
+    cursor: pointer; outline: none;
+  }
+  .costs-section { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+  .costs-section h3 { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--bark); margin-bottom: 1rem; }
+  .costs-subsection-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-light); margin-bottom: 8px; }
+  .staff-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 12px; background: var(--cream); border-radius: 8px; border: 1px solid var(--border); }
+  .staff-name-col { flex: 1; }
+  .staff-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .staff-role { font-size: 11px; color: var(--text-light); }
+  .staff-rate { font-size: 12px; color: var(--text-mid); white-space: nowrap; }
+  .days-input { width: 60px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; text-align: center; background: #fff; color: var(--text); outline: none; }
+  .days-input:focus { border-color: var(--bark-light); }
+  .days-cost { font-size: 13px; font-weight: 500; color: var(--moss); min-width: 50px; text-align: right; }
+  .equip-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 12px; background: var(--cream); border-radius: 8px; border: 1px solid var(--border); }
+  .equip-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+  .equip-rate { font-size: 12px; color: var(--text-mid); }
+  .cost-summary { background: var(--bark); color: var(--cream); border-radius: 10px; padding: 14px 16px; margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .cost-sum-item { text-align: center; }
+  .cost-sum-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--moss-pale); margin-bottom: 3px; }
+  .cost-sum-val { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .cost-sum-val.profit-pos { color: #8fd47a; }
+  .cost-sum-val.profit-neg { color: #f9a8a0; }
+  .margin-pill { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 6px; }
+  .margin-good { background: #e8f5e0; color: #2e5c22; }
+  .margin-ok { background: #fdf0dc; color: #7a4c00; }
+  .margin-bad { background: #fce8e8; color: #7a1a1a; }
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen" style="position:fixed;inset:0;background:var(--bark);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem;">
+  <div style="background:var(--cream);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:320px;text-align:center;">
+    <div style="width:56px;height:56px;background:var(--moss);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 1rem;">🌳</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--bark);margin-bottom:4px;">Canopy</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:1.5rem;">Enter your PIN to continue</div>
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:14px;margin-bottom:1.5rem;">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div id="pin-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:12px;"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <div></div>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn pin-del" onclick="pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--bark-light);
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .pin-dot.filled { background: var(--bark); border-color: var(--bark); }
+  .pin-dot.error { border-color: var(--red); background: var(--red); }
+  .pin-btn {
+    padding: 16px; font-size: 20px; font-family: 'DM Serif Display', serif;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: #fff; color: var(--bark); cursor: pointer;
+    transition: background 0.1s;
+  }
+  .pin-btn:active { background: var(--cream-dark); }
+  .pin-del { font-size: 16px; font-family: 'DM Sans', sans-serif; }
+</style>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌳</div>
+    Canopy
+  </div>
+  <div class="header-actions">
+    <span id="sync-status" style="font-size:12px;color:var(--moss-pale);"></span>
+    <button class="btn-primary" onclick="openAddModal()">+ New Job</button>
+  </div>
+</header>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="main">
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="Search customer or address…" oninput="render()">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+    <button class="filter-btn" data-filter="quoted" onclick="setFilter('quoted', this)">Quoted</button>
+    <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">Pending</button>
+    <button class="filter-btn" data-filter="scheduled" onclick="setFilter('scheduled', this)">Scheduled</button>
+    <button class="filter-btn" data-filter="done" onclick="setFilter('done', this)">Done</button>
+    <button class="filter-btn" data-filter="overdue" onclick="setFilter('overdue', this)">⚠ Overdue</button>
+  </div>
+  <div class="board" id="board"></div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-backdrop" id="addModal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('addModal')">✕</button>
+    <h2 id="modalTitle">New Job</h2>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Customer Name</label>
+        <input type="text" id="f-name" placeholder="e.g. John & Sarah Mills">
+      </div>
+      <div class="form-group full">
+        <label>Address / Site</label>
+        <input type="text" id="f-address" placeholder="e.g. 14 Oak Lane, Abergavenny">
+      </div>
+      <div class="form-group">
+        <label>Job Type</label>
+        <select id="f-type">
+          <option value="pruning">Pruning</option>
+          <option value="felling">Felling</option>
+          <option value="survey">Survey</option>
+          <option value="stump">Stump removal</option>
+          <option value="hedge">Hedge trimming</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="f-status" onchange="toggleTpoRow()">
+          <option value="quoted">Quoted</option>
+          <option value="pending">Pending</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quote (£)</label>
+        <input type="number" id="f-quote" placeholder="0.00" min="0" step="0.01" oninput="updateCosts()">
+      </div>
+      <div class="form-group">
+        <label>Invoice status</label>
+        <select id="f-invoice">
+          <option value="quoted">Quoted</option>
+          <option value="invoiced">Invoiced</option>
+          <option value="paid">Paid</option>
+          <option value="unpaid">Unpaid / overdue</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Follow-up date</label>
+        <input type="date" id="f-followup">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="f-phone" placeholder="07700 000000">
+      </div>
+      <div class="form-group full">
+        <label>Site / tree notes</label>
+        <textarea id="f-notes" placeholder="e.g. Large oak near fence, TPO in place, access via side gate…"></textarea>
+      </div>
+      <div class="form-group full" id="tpo-row" style="display:none;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;">
+          <input type="checkbox" id="f-tpo" style="width:16px;height:16px;accent-color:var(--moss);cursor:pointer;">
+          <span style="font-weight:500;color:var(--text);">TPO application submitted</span>
+          <span style="font-size:12px;color:var(--text-light);font-weight:400;">(Tree Preservation Order)</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="costs-section">
+      <h3>Job costs</h3>
+      <div style="margin-bottom:1rem;">
+        <div class="costs-subsection-title">Staff — days on job</div>
+        <div class="staff-row">
+          <div class="staff-name-col"><div class="staff-name">Alex &amp; Emily</div><div class="staff-role">Admin</div></div>
+          <div class="staff-rate">£200/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-alex" oninput="updateCosts()">
+          <div class="days-cost" id="cost-alex">£0</div>
+        </div>
+        <div class="staff-row">
+          <div class="staff-name-col"><div class="staff-name">Jeb</div><div class="staff-role">Groundworker</div></div>
+          <div class="staff-rate">£120/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-jeb" oninput="updateCosts()">
+          <div class="days-cost" id="cost-jeb">£0</div>
+        </div>
+        <div class="staff-row">
+          <div class="staff-name-col"><div class="staff-name">Ryan</div><div class="staff-role">Climber</div></div>
+          <div class="staff-rate">£170/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-ryan" oninput="updateCosts()">
+          <div class="days-cost" id="cost-ryan">£0</div>
+        </div>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <div class="costs-subsection-title">Equipment</div>
+        <div class="equip-row">
+          <div class="equip-name">Chipper</div>
+          <div class="equip-rate">£80/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-chipper" oninput="updateCosts()">
+          <div class="days-cost" id="cost-chipper">£0</div>
+        </div>
+      </div>
+      <div class="cost-summary">
+        <div class="cost-sum-item">
+          <div class="cost-sum-label">Total cost</div>
+          <div class="cost-sum-val" id="sum-cost">£0</div>
+        </div>
+        <div class="cost-sum-item">
+          <div class="cost-sum-label">Quote</div>
+          <div class="cost-sum-val" id="sum-quote">£0</div>
+        </div>
+        <div class="cost-sum-item">
+          <div class="cost-sum-label">Profit</div>
+          <div class="cost-sum-val" id="sum-profit">£0</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="deleteBtn" onclick="deleteJob()" style="display:none">Delete job</button>
+      <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveJob()">Save job</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STAFF = [
+  { id: 'alex',   name: 'Alex & Emily', role: 'Admin',       rate: 200 },
+  { id: 'jeb',    name: 'Jeb',          role: 'Groundworker', rate: 120 },
+  { id: 'ryan',   name: 'Ryan',         role: 'Climber',      rate: 170 },
+];
+const EQUIPMENT = [
+  { id: 'chipper', name: 'Chipper', rate: 80 },
+];
+
+function updateCosts() {
+  let total = 0;
+  STAFF.forEach(s => {
+    const days = parseFloat(document.getElementById('days-'+s.id).value) || 0;
+    const cost = days * s.rate;
+    document.getElementById('cost-'+s.id).textContent = '£' + cost.toLocaleString('en-GB');
+    total += cost;
+  });
+  EQUIPMENT.forEach(e => {
+    const days = parseFloat(document.getElementById('days-'+e.id).value) || 0;
+    const cost = days * e.rate;
+    document.getElementById('cost-'+e.id).textContent = '£' + cost.toLocaleString('en-GB');
+    total += cost;
+  });
+  const quote = parseFloat(document.getElementById('f-quote').value) || 0;
+  const profit = quote - total;
+  document.getElementById('sum-cost').textContent = '£' + total.toLocaleString('en-GB');
+  document.getElementById('sum-quote').textContent = '£' + quote.toLocaleString('en-GB');
+  const profitEl = document.getElementById('sum-profit');
+  profitEl.textContent = (profit >= 0 ? '£' : '-£') + Math.abs(profit).toLocaleString('en-GB');
+  profitEl.className = 'cost-sum-val ' + (profit >= 0 ? 'profit-pos' : 'profit-neg');
+}
+
+function getCostData() {
+  const data = {};
+  STAFF.forEach(s => { data['days-'+s.id] = parseFloat(document.getElementById('days-'+s.id).value) || 0; });
+  EQUIPMENT.forEach(e => { data['days-'+e.id] = parseFloat(document.getElementById('days-'+e.id).value) || 0; });
+  return data;
+}
+
+function loadCostData(costs) {
+  const c = costs || {};
+  STAFF.forEach(s => { document.getElementById('days-'+s.id).value = c['days-'+s.id] || 0; });
+  EQUIPMENT.forEach(e => { document.getElementById('days-'+e.id).value = c['days-'+e.id] || 0; });
+  updateCosts();
+}
+
+function jobTotalCost(job) {
+  if (!job.costs) return 0;
+  let t = 0;
+  STAFF.forEach(s => { t += (job.costs['days-'+s.id] || 0) * s.rate; });
+  EQUIPMENT.forEach(e => { t += (job.costs['days-'+e.id] || 0) * e.rate; });
+  return t;
+}
+
+function toggleTpoRow() {
+  const status = document.getElementById('f-status').value;
+  document.getElementById('tpo-row').style.display = status === 'pending' ? 'block' : 'none';
+}
+
+function marginClass(margin) {
+  if (margin >= 40) return 'margin-good';
+  if (margin >= 15) return 'margin-ok';
+  return 'margin-bad';
+}
+
+const SUPABASE_URL = 'https://dmjdnvserproglvyurez.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_8_bMUsdLbtFo4x8popoXqA_9ujj9NsC';
+const TABLE = 'canopy_jobs';
+
+let jobs = [];
+let editingId = null;
+let activeFilter = 'all';
+
+function sbHeaders(extra) {
+  return Object.assign({
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Prefer': 'return=representation'
+  }, extra || {});
+}
+
+function showSyncStatus(msg, isError) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#f9a8a0' : 'var(--moss-pale)';
+}
+
+async function loadJobs() {
+  showSyncStatus('Connecting…');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=created_at.desc`, { headers: sbHeaders() });
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const msg = (body.message || body.hint || '') + '';
+      const tableGone = body.code === '42P01' || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('relation');
+      if (tableGone) {
+        showSetupBanner();
+        jobs = getSampleJobs();
+        showSyncStatus('Table not found — see setup banner', true);
+      } else {
+        showSyncStatus('Error: ' + (body.message || res.status), true);
+        jobs = getSampleJobs();
+      }
+    } else {
+      const rows = Array.isArray(body) ? body : [];
+      jobs = rows.map(r => ({ ...r.data, id: r.id }));
+      if (!jobs.length) {
+        jobs = getSampleJobs();
+        showSyncStatus('Seeding sample data…');
+        for (const j of jobs) await upsertJobRemote(j);
+      } else {
+        showSyncStatus('Synced ✓');
+      }
+    }
+  } catch(e) {
+    showSyncStatus('Cannot reach database', true);
+    console.error('Load error:', e);
+    jobs = getSampleJobs();
+  }
+  render();
+}
+
+function showSetupBanner() {
+  const existing = document.getElementById('setup-banner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'setup-banner';
+  banner.style.cssText = 'background:#7A5230;color:#F5F0E8;padding:14px 2rem;font-size:13px;line-height:1.7;';
+  banner.innerHTML = `
+    <strong style="font-size:14px;">⚠ One-time database setup needed</strong><br>
+    Go to <strong>Supabase → SQL Editor → New query</strong>, paste the SQL below and click <strong>Run</strong>. Then refresh this page.<br>
+    <code style="display:block;background:rgba(0,0,0,0.3);padding:10px 14px;border-radius:6px;margin-top:8px;font-size:12px;white-space:pre-wrap;user-select:all;">create table canopy_jobs (
+  id text primary key,
+  data jsonb not null,
+  created_at timestamptz default now()
+);
+alter table canopy_jobs enable row level security;
+create policy "allow all" on canopy_jobs for all using (true) with check (true);</code>
+    <button onclick="document.getElementById('setup-banner').remove()" style="margin-top:10px;padding:6px 14px;background:var(--moss);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Dismiss (data shown is sample only)</button>
+  `;
+  const statsBar = document.getElementById('statsBar');
+  statsBar.parentNode.insertBefore(banner, statsBar.nextSibling);
+}
+
+async function upsertJobRemote(job) {
+  showSyncStatus('Saving…');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+      method: 'POST',
+      headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=representation' }),
+      body: JSON.stringify({ id: job.id, data: job })
+    });
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).message || res.status);
+    showSyncStatus('Saved ✓');
+  } catch(e) {
+    showSyncStatus('Save failed — check connection', true);
+    console.error('Save error:', e);
+  }
+}
+
+async function deleteJobRemote(id) {
+  showSyncStatus('Deleting…');
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${id}`, { method: 'DELETE', headers: sbHeaders() });
+    showSyncStatus('Deleted ✓');
+  } catch(e) {
+    showSyncStatus('Delete failed', true);
+  }
+}
+function getSampleJobs() {
+  const today = new Date();
+  const d = (offset) => {
+    const dt = new Date(today);
+    dt.setDate(dt.getDate() + offset);
+    return dt.toISOString().split('T')[0];
+  };
+  return [
+    { id: uid(), name: 'Peter Griffiths', address: '3 Hazel Grove, Abergavenny', type: 'pruning', status: 'quoted', quote: 320, invoice: 'quoted', followup: d(5), phone: '07811 334455', notes: 'Quote sent for crown reduction on large beech. Awaiting customer confirmation.', costs: {'days-alex':0.5,'days-jeb':1,'days-ryan':0,'days-chipper':0} },
+    { id: uid(), name: 'David & Carol Rees', address: '7 Elm Close, Usk', type: 'pruning', status: 'pending', quote: 280, invoice: 'quoted', followup: d(3), phone: '07711 234567', notes: 'Two large apple trees, overhanging neighbour. Customer wants light crown lift.', costs: {'days-alex':0,'days-jeb':1,'days-ryan':1,'days-chipper':1} },
+    { id: uid(), name: 'Bridget Howells', address: '22 Woodland Rise, Caerleon', type: 'felling', status: 'pending', quote: 650, invoice: 'quoted', followup: d(-2), phone: '07890 112233', notes: 'Ash with suspected dieback. TPO check needed before proceeding.', costs: {'days-alex':0.5,'days-jeb':1,'days-ryan':1,'days-chipper':1} },
+    { id: uid(), name: 'The Old Rectory', address: 'Church Rd, Raglan', type: 'survey', status: 'scheduled', quote: 180, invoice: 'invoiced', followup: d(7), phone: '01291 690210', notes: 'Full site survey for planning application. 6 trees to assess.', costs: {'days-alex':1,'days-jeb':0,'days-ryan':0,'days-chipper':0} },
+    { id: uid(), name: 'Morgan & Sons Farm', address: 'Llangybi, near Usk', type: 'hedge', status: 'scheduled', quote: 420, invoice: 'invoiced', followup: d(5), phone: '07722 445566', notes: 'Mixed hedgerow approx 80m. Cut back hard. Check for nesting birds first.', costs: {'days-alex':0,'days-jeb':2,'days-ryan':0,'days-chipper':0} },
+    { id: uid(), name: 'Sandra Partridge', address: '4 Beech Ave, Monmouth', type: 'stump', status: 'done', quote: 195, invoice: 'paid', followup: null, phone: '07633 887766', notes: 'Two stumps ground out. Job complete, waste removed.', costs: {'days-alex':0,'days-jeb':1,'days-ryan':0,'days-chipper':0} },
+    { id: uid(), name: 'Cwm Leisure Centre', address: 'Cwmbran Town Centre', type: 'pruning', status: 'done', quote: 1100, invoice: 'paid', followup: null, phone: '01633 648900', notes: 'Annual contract. Crown thin on 8 limes along car park perimeter.', costs: {'days-alex':0.5,'days-jeb':2,'days-ryan':2,'days-chipper':2} },
+  ];
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function isOverdue(job) {
+  if (!job.followup) return false;
+  return new Date(job.followup) < new Date(new Date().toDateString()) && job.status !== 'done';
+}
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return jobs.filter(j => {
+    const matchSearch = !q || j.name.toLowerCase().includes(q) || (j.address||'').toLowerCase().includes(q);
+    if (!matchSearch) return false;
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'overdue') return isOverdue(j);
+    return j.status === activeFilter;
+  });
+}
+
+function badgeClass(type) {
+  return { pruning:'badge-pruning', felling:'badge-felling', survey:'badge-survey', stump:'badge-stump', hedge:'badge-hedge' }[type] || 'badge-other';
+}
+function typeLabel(type) {
+  return { pruning:'Pruning', felling:'Felling', survey:'Survey', stump:'Stump removal', hedge:'Hedge trim', other:'Other' }[type] || type;
+}
+function invoiceLabel(inv) {
+  return { quoted:'Quoted', invoiced:'Invoiced', paid:'Paid', unpaid:'Overdue' }[inv] || inv;
+}
+function invoiceClass(inv) {
+  return { quoted:'inv-quoted', invoiced:'inv-invoiced', paid:'inv-paid', unpaid:'inv-unpaid' }[inv] || '';
+}
+function addToCalendar(id) {
+  const job = jobs.find(j => j.id === id);
+  if (!job || !job.followup) return;
+
+  const dt = job.followup.replace(/-/g, '');
+  const title = encodeURIComponent('Follow-up: ' + job.name);
+  const desc = encodeURIComponent(
+    [typeLabel(job.type), job.address, job.notes].filter(Boolean).join(' | ')
+  );
+  const loc = encodeURIComponent(job.address || '');
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Canopy Arborist//EN',
+    'BEGIN:VEVENT',
+    'UID:' + job.id + '@canopy',
+    'DTSTART;VALUE=DATE:' + dt,
+    'DTEND;VALUE=DATE:' + dt,
+    'SUMMARY:Follow-up: ' + job.name,
+    'DESCRIPTION:' + [typeLabel(job.type), job.address, job.notes].filter(Boolean).join(' | '),
+    'LOCATION:' + (job.address || ''),
+    'BEGIN:VALARM',
+    'TRIGGER:-PT0S',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Reminder',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'followup-' + job.name.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function formatDate(d) {
+  if (!d) return null;
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function renderCard(job) {
+  const od = isOverdue(job);
+  const fuDate = job.followup ? formatDate(job.followup) : null;
+  const totalCost = jobTotalCost(job);
+  const profit = (job.quote || 0) - totalCost;
+  const margin = job.quote ? Math.round((profit / job.quote) * 100) : null;
+  const showMargin = totalCost > 0 && job.quote > 0;
+  return `
+    <div class="job-card${od?' overdue':''}" onclick="openViewModal('${job.id}')">
+      <div class="card-top">
+        <div class="customer-name">${job.name}</div>
+        <span class="job-type-badge ${badgeClass(job.type)}">${typeLabel(job.type)}</span>
+      </div>
+      ${job.address ? `<div class="card-address">📍 ${job.address}</div>` : ''}
+      ${job.notes ? `<div class="card-notes">${job.notes.length > 90 ? job.notes.slice(0,90)+'…' : job.notes}</div>` : ''}
+      <div class="card-bottom">
+        <div class="quote-val">${job.quote ? '£'+Number(job.quote).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'}</div>
+        <span class="invoice-badge ${invoiceClass(job.invoice)}">${invoiceLabel(job.invoice)}</span>
+      </div>
+      ${showMargin ? `<span class="margin-pill ${marginClass(margin)}">${margin >= 0 ? margin+'% margin' : 'Loss: £'+Math.abs(profit).toLocaleString('en-GB')}</span>` : ''}
+      ${job.status === 'pending' ? `<div style="margin-top:6px;"><span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;background:${job.tpo ? '#e0eef8' : '#fef3e2'};color:${job.tpo ? '#1a4f70' : '#7a4c00'};">TPO ${job.tpo ? '✓ submitted' : '— not submitted'}</span></div>` : ''}
+      ${fuDate ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <div class="followup-row${od?' overdue-text':''}" style="margin-top:0;">📅 Follow-up: ${fuDate}${od?' · Overdue':''}</div>
+        <button onclick="event.stopPropagation();addToCalendar('${job.id}')" style="font-size:11px;padding:3px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text-mid);cursor:pointer;white-space:nowrap;">+ Calendar</button>
+      </div>` : ''}
+    </div>`;
+}
+
+function render() {
+  const filtered = getFiltered();
+  const cols = { quoted: [], pending: [], scheduled: [], done: [] };
+  filtered.forEach(j => { if (cols[j.status]) cols[j.status].push(j); });
+
+  // stats
+  const all = jobs;
+  const totalQuote = all.filter(j=>j.quote).reduce((s,j)=>s+Number(j.quote),0);
+  const outstanding = all.filter(j=>j.invoice==='invoiced'||j.invoice==='unpaid').reduce((s,j)=>s+Number(j.quote||0),0);
+  const overdueCount = all.filter(j=>isOverdue(j)).length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><div class="stat-num">${all.length}</div><div class="stat-label">Total jobs</div></div>
+    <div class="stat"><div class="stat-num">${all.filter(j=>j.status==='quoted').length}</div><div class="stat-label">Quoted</div></div>
+    <div class="stat"><div class="stat-num">${all.filter(j=>j.status==='pending').length}</div><div class="stat-label">Pending</div></div>
+    <div class="stat"><div class="stat-num">${all.filter(j=>j.status==='scheduled').length}</div><div class="stat-label">Scheduled</div></div>
+    <div class="stat"><div class="stat-num">${all.filter(j=>j.status==='done').length}</div><div class="stat-label">Completed</div></div>
+    <div class="stat"><div class="stat-num">£${totalQuote.toLocaleString('en-GB')}</div><div class="stat-label">Total quoted</div></div>
+    <div class="stat"><div class="stat-num" style="color:var(--amber-light)">£${outstanding.toLocaleString('en-GB')}</div><div class="stat-label">Outstanding</div></div>
+    ${overdueCount ? `<div class="stat"><div class="stat-num" style="color:#F9A8A0">${overdueCount}</div><div class="stat-label">Overdue</div></div>` : ''}
+  `;
+
+  const showAll = activeFilter === 'all';
+  const colJobs = (status) => showAll ? cols[status] : filtered.filter(j=>j.status===status);
+  document.getElementById('board').innerHTML = `
+    <div class="column">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot dot-quoted"></div>Quoted</div>
+        <div class="col-count">${colJobs('quoted').length}</div>
+      </div>
+      ${colJobs('quoted').map(renderCard).join('')}
+      ${colJobs('quoted').length===0?'<div class="empty-col">No quoted jobs</div>':''}
+    </div>
+    <div class="column">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot dot-pending"></div>Pending</div>
+        <div class="col-count">${colJobs('pending').length}</div>
+      </div>
+      ${colJobs('pending').map(renderCard).join('')}
+      ${colJobs('pending').length===0?'<div class="empty-col">No pending jobs</div>':''}
+    </div>
+    <div class="column">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot dot-scheduled"></div>Scheduled</div>
+        <div class="col-count">${colJobs('scheduled').length}</div>
+      </div>
+      ${colJobs('scheduled').map(renderCard).join('')}
+      ${colJobs('scheduled').length===0?'<div class="empty-col">No scheduled jobs</div>':''}
+    </div>
+    <div class="column">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot dot-done"></div>Completed</div>
+        <div class="col-count">${colJobs('done').length}</div>
+      </div>
+      ${colJobs('done').map(renderCard).join('')}
+      ${colJobs('done').length===0?'<div class="empty-col">No completed jobs</div>':''}
+    </div>
+  `;
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Job';
+  document.getElementById('deleteBtn').style.display = 'none';
+  ['name','address','type','status','quote','invoice','followup','phone','notes'].forEach(f => {
+    const el = document.getElementById('f-'+f);
+    if (el.tagName==='SELECT') el.value = { status:'quoted', invoice:'quoted', type:'pruning' }[f] || el.options[0].value;
+    else el.value = '';
+  });
+  loadCostData({});
+  document.getElementById('f-tpo').checked = false;
+  toggleTpoRow();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function openViewModal(id) {
+  const job = jobs.find(j=>j.id===id);
+  if (!job) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = job.name;
+  document.getElementById('deleteBtn').style.display = 'inline-block';
+  document.getElementById('f-name').value = job.name||'';
+  document.getElementById('f-address').value = job.address||'';
+  document.getElementById('f-type').value = job.type||'other';
+  document.getElementById('f-status').value = job.status||'pending';
+  document.getElementById('f-quote').value = job.quote||'';
+  document.getElementById('f-invoice').value = job.invoice||'quoted';
+  document.getElementById('f-followup').value = job.followup||'';
+  document.getElementById('f-phone').value = job.phone||'';
+  document.getElementById('f-notes').value = job.notes||'';
+  document.getElementById('f-tpo').checked = job.tpo || false;
+  loadCostData(job.costs || {});
+  toggleTpoRow();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+async function saveJob() {
+  const job = {
+    id: editingId || uid(),
+    name: document.getElementById('f-name').value.trim(),
+    address: document.getElementById('f-address').value.trim(),
+    type: document.getElementById('f-type').value,
+    status: document.getElementById('f-status').value,
+    quote: parseFloat(document.getElementById('f-quote').value) || 0,
+    invoice: document.getElementById('f-invoice').value,
+    followup: document.getElementById('f-followup').value || null,
+    phone: document.getElementById('f-phone').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    tpo: document.getElementById('f-tpo').checked,
+    costs: getCostData(),
+  };
+  if (!job.name) { alert('Please enter a customer name.'); return; }
+  if (editingId) {
+    const idx = jobs.findIndex(j=>j.id===editingId);
+    if (idx > -1) jobs[idx] = job;
+  } else {
+    jobs.unshift(job);
+  }
+  closeModal('addModal');
+  render();
+  await upsertJobRemote(job);
+}
+
+function deleteJob() {
+  if (!editingId) return;
+  if (!confirm('Delete this job? This cannot be undone.')) return;
+  const id = editingId;
+  jobs = jobs.filter(j=>j.id!==id);
+  closeModal('addModal');
+  render();
+  deleteJobRemote(id);
+}
+
+document.getElementById('addModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal('addModal');
+});
+
+const CORRECT_PIN = '2025';
+let pinEntry = '';
+
+function pinPress(digit) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updatePinDots();
+  if (pinEntry.length === 4) {
+    setTimeout(() => checkPin(), 150);
+  }
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  document.getElementById('pin-error').textContent = '';
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot-' + i);
+    dot.classList.toggle('filled', i < pinEntry.length);
+    dot.classList.remove('error');
+  }
+}
+
+function checkPin() {
+  if (pinEntry === CORRECT_PIN) {
+    sessionStorage.setItem('canopy_pin', '1');
+    document.getElementById('pin-screen').style.display = 'none';
+    loadJobs();
+  } else {
+    for (let i = 0; i < 4; i++) document.getElementById('dot-'+i).classList.add('error');
+    document.getElementById('pin-error').textContent = 'Incorrect PIN — try again';
+    setTimeout(() => { pinEntry = ''; updatePinDots(); }, 800);
+  }
+}
+
+if (sessionStorage.getItem('canopy_pin') === '1') {
+  document.getElementById('pin-screen').style.display = 'none';
+  loadJobs();
+}
+</script>
+</body>
+</html>
