@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canopy — Arborist Job Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bark:#2C1A0E;--bark-mid:#4A2E18;--bark-light:#7A5230;
+  --moss:#3A5C2E;--moss-light:#5A8A48;--moss-pale:#C8DFC0;
+  --cream:#F5F0E8;--cream-dark:#EDE5D4;
+  --amber:#D4891A;--amber-light:#F0B44C;
+  --sky:#4A7A9B;--purple:#7B5EA7;
+  --red:#C0392B;--red-light:#E8A89E;
+  --text:#1A0F08;--text-mid:#5C3D26;--text-light:#8C6845;
+  --border:rgba(74,46,24,0.15);--shadow:0 2px 12px rgba(44,26,14,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:14px;}
+header{background:var(--bark);color:var(--cream);padding:0 1.5rem;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:.02em;display:flex;align-items:center;gap:10px;}
+.logo-icon{width:32px;height:32px;background:var(--moss);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header-actions{display:flex;gap:10px;align-items:center;}
+.btn-primary{background:var(--moss);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .2s;}
+.btn-primary:hover{background:var(--moss-light);}
+.stats-bar{background:var(--bark-mid);padding:12px 1.5rem;display:flex;gap:2rem;color:var(--cream);overflow-x:auto;}
+.stat{text-align:center;min-width:80px;}
+.stat-num{font-family:'DM Serif Display',serif;font-size:24px;line-height:1;}
+.stat-label{font-size:11px;color:var(--moss-pale);margin-top:2px;text-transform:uppercase;letter-spacing:.06em;}
+
+/* TABS */
+.tabs{background:var(--bark);display:flex;overflow-x:auto;padding:0 1.5rem;gap:4px;border-top:1px solid rgba(255,255,255,0.08);}
+.tab{padding:12px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;}
+.tab:hover{color:var(--cream);}
+.tab.active{color:var(--cream);border-bottom-color:var(--moss-light);}
+
+.main{padding:1.5rem;max-width:1400px;margin:0 auto;}
+.page{display:none;}.page.active{display:block;}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center;}
+.filter-bar input[type=text]{flex:1;min-width:180px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:var(--text);outline:none;}
+.filter-btn{padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text-mid);transition:all .15s;}
+.filter-btn:hover,.filter-btn.active{background:var(--bark);color:var(--cream);border-color:var(--bark);}
+
+/* BOARD */
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:1.25rem;align-items:start;}
+@media(max-width:1200px){.board{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){.board{grid-template-columns:1fr;}}
+.column{background:var(--cream-dark);border-radius:14px;padding:14px;border:1px solid var(--border);}
+.col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.col-title{font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:8px;}
+.col-dot{width:9px;height:9px;border-radius:50%;}
+.dot-quoted{background:var(--purple);}
+.dot-pending{background:var(--amber);}
+.dot-tpo{background:#E8831A;}
+.dot-scheduled{background:var(--sky);}
+.dot-done{background:var(--moss);}
+.col-count{font-size:12px;background:rgba(44,26,14,0.1);padding:2px 8px;border-radius:20px;color:var(--text-mid);font-weight:500;}
+
+/* JOB CARDS */
+.job-card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer;transition:box-shadow .2s,transform .15s;}
+.job-card:hover{box-shadow:var(--shadow);transform:translateY(-1px);}
+.job-card.overdue{border-left:3px solid var(--red);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.customer-name{font-weight:600;font-size:14px;color:var(--text);}
+.job-type-badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.badge-pruning{background:#E8F5E0;color:#2E5C22;}
+.badge-felling{background:#FDF0DC;color:#7A4C00;}
+.badge-survey{background:#E0EEF8;color:#1A4F70;}
+.badge-stump{background:#F0E8F8;color:#4A1F7A;}
+.badge-hedge{background:#E8F8F0;color:#1A5C3A;}
+.badge-other{background:var(--cream-dark);color:var(--text-mid);}
+.card-address{font-size:12px;color:var(--text-light);margin-bottom:8px;}
+.card-notes{font-size:12px;color:var(--text-mid);background:var(--cream);padding:6px 10px;border-radius:6px;margin-bottom:8px;line-height:1.5;font-style:italic;}
+.card-bottom{display:flex;justify-content:space-between;align-items:center;}
+.quote-val{font-family:'DM Serif Display',serif;font-size:16px;color:var(--moss);}
+.invoice-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
+.inv-unpaid{background:var(--red-light);color:var(--red);}
+.inv-invoiced{background:#FDE8C0;color:#7A4C00;}
+.inv-paid{background:var(--moss-pale);color:var(--moss);}
+.inv-quoted{background:#E0EEF8;color:var(--sky);}
+.followup-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text-light);}
+.followup-row.overdue-text{color:var(--red);font-weight:500;}
+.margin-pill{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:6px;}
+.margin-good{background:#e8f5e0;color:#2e5c22;}
+.margin-ok{background:#fdf0dc;color:#7a4c00;}
+.margin-bad{background:#fce8e8;color:#7a1a1a;}
+.tpo-badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;margin-top:6px;display:inline-block;}
+.linked-badge{font-size:11px;background:#E8F0FF;color:#1A3A8C;padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block;}
+.empty-col{text-align:center;color:var(--text-light);padding:24px 0;font-size:13px;font-style:italic;}
+
+/* TPO column specific */
+.tpo-date-info{font-size:11px;color:var(--text-mid);margin-top:5px;}
+.tpo-progress{height:4px;background:var(--cream-dark);border-radius:2px;margin-top:5px;}
+.tpo-progress-fill{height:4px;border-radius:2px;background:var(--amber);}
+.tpo-approved{background:#e8f5e0 !important;}
+.tpo-overdue{background:#fce8e8 !important;border-left:3px solid var(--red) !important;}
+
+/* MODAL */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(44,26,14,0.5);z-index:200;align-items:center;justify-content:center;padding:1rem;}
+.modal-backdrop.open{display:flex;}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;padding:2rem;position:relative;box-shadow:0 20px 60px rgba(44,26,14,0.25);}
+.modal h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:1.5rem;color:var(--bark);}
+.modal h3{font-family:'DM Serif Display',serif;font-size:17px;color:var(--bark);margin-bottom:1rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.form-group label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);}
+.form-group input,.form-group select,.form-group textarea{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:#fff;outline:none;transition:border-color .2s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--bark-light);}
+.form-group textarea{resize:vertical;min-height:70px;}
+.modal-actions{display:flex;gap:10px;margin-top:1.5rem;justify-content:flex-end;}
+.btn-cancel{padding:9px 20px;border:1px solid var(--border);border-radius:8px;background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-mid);}
+.btn-cancel:hover{background:var(--cream);}
+.btn-danger{padding:9px 16px;border:1px solid var(--red);border-radius:8px;background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--red);margin-right:auto;}
+.btn-danger:hover{background:#fff0ee;}
+.close-btn{position:absolute;top:16px;right:16px;background:var(--cream-dark);border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;color:var(--text-mid);display:flex;align-items:center;justify-content:center;}
+
+/* COSTS */
+.costs-section{margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.25rem;}
+.costs-subsection-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-light);margin-bottom:8px;}
+.staff-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:var(--cream);border-radius:8px;border:1px solid var(--border);}
+.staff-name-col{flex:1;}
+.staff-name{font-size:13px;font-weight:500;color:var(--text);}
+.staff-role{font-size:11px;color:var(--text-light);}
+.staff-rate{font-size:12px;color:var(--text-mid);white-space:nowrap;}
+.days-input{width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;text-align:center;background:#fff;color:var(--text);outline:none;}
+.days-cost{font-size:13px;font-weight:500;color:var(--moss);min-width:50px;text-align:right;}
+.equip-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:var(--cream);border-radius:8px;border:1px solid var(--border);}
+.equip-name{flex:1;font-size:13px;font-weight:500;}
+.equip-rate{font-size:12px;color:var(--text-mid);}
+.cost-summary{background:var(--bark);color:var(--cream);border-radius:10px;padding:14px 16px;margin-top:1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.cost-sum-item{text-align:center;}
+.cost-sum-label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--moss-pale);margin-bottom:3px;}
+.cost-sum-val{font-family:'DM Serif Display',serif;font-size:20px;}
+.cost-sum-val.profit-pos{color:#8fd47a;}
+.cost-sum-val.profit-neg{color:#f9a8a0;}
+.linked-jobs-section{margin-top:1rem;padding:12px;background:var(--cream);border-radius:8px;border:1px solid var(--border);}
+.linked-jobs-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);margin-bottom:8px;}
+.linked-job-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.linked-job-item:last-child{border-bottom:none;}
+.shared-cost-note{font-size:11px;color:var(--moss);margin-top:6px;font-style:italic;}
+
+/* SCHEDULED PAGE */
+.sched-controls{display:flex;gap:10px;margin-bottom:1.5rem;align-items:center;flex-wrap:wrap;}
+.view-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.view-btn{padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#fff;color:var(--text-mid);font-family:'DM Sans',sans-serif;transition:all .15s;}
+.view-btn.active{background:var(--bark);color:var(--cream);}
+
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:1.5rem;}
+.cal-header-cell{text-align:center;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);padding:8px 4px;}
+.cal-cell{background:#fff;border-radius:8px;min-height:80px;padding:6px;border:1px solid var(--border);font-size:12px;}
+.cal-cell.today{border-color:var(--moss);border-width:2px;}
+.cal-cell.other-month{background:var(--cream-dark);opacity:.5;}
+.cal-day-num{font-weight:600;font-size:12px;color:var(--text-mid);margin-bottom:4px;}
+.cal-job-chip{background:var(--sky);color:#fff;border-radius:4px;padding:2px 5px;font-size:10px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-nav{display:flex;align-items:center;gap:12px;margin-bottom:1rem;}
+.cal-nav-btn{padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;}
+.cal-month-label{font-family:'DM Serif Display',serif;font-size:18px;color:var(--bark);}
+
+/* WEEKLY P&L */
+.week-pl-section{margin-top:1.5rem;}
+.week-pl-title{font-family:'DM Serif Display',serif;font-size:18px;color:var(--bark);margin-bottom:1rem;}
+.week-row{background:#fff;border-radius:10px;border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:10px;align-items:center;}
+.week-label{font-weight:600;font-size:13px;color:var(--text);}
+.week-sub{font-size:11px;color:var(--text-light);}
+.week-val{text-align:right;}
+.week-val-num{font-family:'DM Serif Display',serif;font-size:16px;}
+.week-val-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);}
+.week-profit-pos{color:var(--moss);}
+.week-profit-neg{color:var(--red);}
+
+/* ARCHIVE PAGE */
+.archive-tabs{display:flex;gap:8px;margin-bottom:1.5rem;}
+.archive-tab{padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:var(--text-mid);transition:all .15s;font-family:'DM Sans',sans-serif;}
+.archive-tab.active{background:var(--bark);color:var(--cream);border-color:var(--bark);}
+.archive-list{display:flex;flex-direction:column;gap:10px;}
+.archive-card{background:#fff;border-radius:10px;padding:14px;border:1px solid var(--border);cursor:pointer;transition:box-shadow .2s;}
+.archive-card:hover{box-shadow:var(--shadow);}
+.archive-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.archive-name{font-weight:600;font-size:14px;}
+.archive-meta{font-size:12px;color:var(--text-light);margin-bottom:8px;}
+.archive-bottom{display:flex;justify-content:space-between;align-items:center;}
+.followup-badge{font-size:11px;padding:2px 10px;border-radius:20px;font-weight:500;}
+.fu-soon{background:#FDE8C0;color:#7A4C00;}
+.fu-due{background:var(--red-light);color:var(--red);}
+.fu-ok{background:var(--moss-pale);color:var(--moss);}
+.btn-restore{font-size:11px;padding:4px 10px;border-radius:6px;background:var(--cream-dark);border:1px solid var(--border);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text-mid);}
+
+/* REMINDERS PAGE */
+.reminder-list{display:flex;flex-direction:column;gap:10px;}
+.reminder-card{background:#fff;border-radius:10px;padding:14px;border:1px solid var(--border);display:flex;gap:14px;align-items:flex-start;}
+.reminder-card.due{border-left:3px solid var(--red);}
+.reminder-card.soon{border-left:3px solid var(--amber);}
+.reminder-date-col{text-align:center;min-width:50px;}
+.reminder-day{font-family:'DM Serif Display',serif;font-size:22px;color:var(--bark);line-height:1;}
+.reminder-month{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);}
+.reminder-content{flex:1;}
+.reminder-name{font-weight:600;font-size:14px;margin-bottom:2px;}
+.reminder-detail{font-size:12px;color:var(--text-light);}
+.reminder-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
+
+/* PIN SCREEN */
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--bark-light);background:transparent;transition:background .15s;}
+.pin-dot.filled{background:var(--bark);border-color:var(--bark);}
+.pin-dot.error{border-color:var(--red);background:var(--red);}
+.pin-btn{padding:16px;font-size:20px;font-family:'DM Serif Display',serif;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--bark);cursor:pointer;transition:background .1s;}
+.pin-btn:active{background:var(--cream-dark);}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen" style="position:fixed;inset:0;background:var(--bark);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem;">
+  <div style="background:var(--cream);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:320px;text-align:center;">
+    <div style="width:56px;height:56px;background:var(--moss);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 1rem;">🌳</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--bark);margin-bottom:4px;">Canopy</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:1.5rem;">Enter your PIN to continue</div>
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:14px;margin-bottom:1.5rem;">
+      <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div id="pin-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:12px;"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;">
+      <button class="pin-btn" onclick="pinPress('1')">1</button><button class="pin-btn" onclick="pinPress('2')">2</button><button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button><button class="pin-btn" onclick="pinPress('5')">5</button><button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button><button class="pin-btn" onclick="pinPress('8')">8</button><button class="pin-btn" onclick="pinPress('9')">9</button>
+      <div></div><button class="pin-btn" onclick="pinPress('0')">0</button><button class="pin-btn" onclick="pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="logo"><div class="logo-icon">🌳</div>Canopy</div>
+  <div class="header-actions">
+    <span id="sync-status" style="font-size:12px;color:var(--moss-pale);"></span>
+    <button class="btn-primary" onclick="openAddModal()">+ New Job</button>
+  </div>
+</header>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('board',this)">Board</div>
+  <div class="tab" onclick="showTab('scheduled',this)">Scheduled</div>
+  <div class="tab" onclick="showTab('reminders',this)">Reminders</div>
+  <div class="tab" onclick="showTab('archive',this)">Archive</div>
+</div>
+
+<div class="main">
+
+  <!-- BOARD PAGE -->
+  <div class="page active" id="page-board">
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="Search customer or address…" oninput="render()">
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('quoted',this)">Quoted</button>
+      <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+      <button class="filter-btn" onclick="setFilter('tpo',this)">TPO</button>
+      <button class="filter-btn" onclick="setFilter('scheduled',this)">Scheduled</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">Done</button>
+      <button class="filter-btn" onclick="setFilter('overdue',this)">⚠ Overdue</button>
+    </div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <!-- SCHEDULED PAGE -->
+  <div class="page" id="page-scheduled">
+    <div class="sched-controls">
+      <div class="view-toggle">
+        <button class="view-btn active" onclick="setSchedView('cards',this)">Cards</button>
+        <button class="view-btn" onclick="setSchedView('calendar',this)">Calendar</button>
+      </div>
+    </div>
+    <div id="sched-cards"></div>
+    <div id="sched-calendar" style="display:none;">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">← Prev</button>
+        <div class="cal-month-label" id="calMonthLabel"></div>
+        <button class="cal-nav-btn" onclick="calNext()">Next →</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <div class="week-pl-section">
+      <div class="week-pl-title">Weekly Profit & Loss</div>
+      <div id="weekPL"></div>
+    </div>
+  </div>
+
+  <!-- REMINDERS PAGE -->
+  <div class="page" id="page-reminders">
+    <div class="reminder-list" id="reminderList"></div>
+  </div>
+
+  <!-- ARCHIVE PAGE -->
+  <div class="page" id="page-archive">
+    <div class="archive-tabs">
+      <button class="archive-tab active" onclick="setArchiveTab('lost',this)">Lost Quotes</button>
+      <button class="archive-tab" onclick="setArchiveTab('completed',this)">Completed & Paid</button>
+    </div>
+    <div class="archive-list" id="archiveList"></div>
+  </div>
+
+</div>
+
+<!-- JOB MODAL -->
+<div class="modal-backdrop" id="addModal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('addModal')">✕</button>
+    <h2 id="modalTitle">New Job</h2>
+    <div class="form-grid">
+      <div class="form-group full"><label>Customer Name</label><input type="text" id="f-name" placeholder="e.g. John & Sarah Mills"></div>
+      <div class="form-group full"><label>Address / Site</label><input type="text" id="f-address" placeholder="e.g. 14 Oak Lane, Abergavenny"></div>
+      <div class="form-group">
+        <label>Job Type</label>
+        <select id="f-type">
+          <option value="pruning">Pruning</option><option value="felling">Felling</option>
+          <option value="survey">Survey</option><option value="stump">Stump removal</option>
+          <option value="hedge">Hedge trimming</option><option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="f-status" onchange="toggleStatusFields()">
+          <option value="quoted">Quoted</option><option value="pending">Pending</option>
+          <option value="tpo">TPO Approval</option><option value="scheduled">Scheduled</option>
+          <option value="done">Done</option>
+          <option disabled>──────────</option>
+          <option value="archived-lost">Archive — Lost Quote</option>
+          <option value="archived-completed">Archive — Completed & Paid</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Quote (£)</label><input type="number" id="f-quote" placeholder="0.00" min="0" step="0.01" oninput="updateCosts()"></div>
+      <div class="form-group">
+        <label>Invoice status</label>
+        <select id="f-invoice">
+          <option value="quoted">Quoted</option><option value="invoiced">Invoiced</option>
+          <option value="paid">Paid</option><option value="unpaid">Unpaid / overdue</option>
+        </select>
+      </div>
+      <div class="form-group" id="row-followup"><label id="followup-label">Follow-up date</label><input type="date" id="f-followup"></div>
+      <div class="form-group"><label>Phone</label><input type="text" id="f-phone" placeholder="07700 000000"></div>
+      <div class="form-group full"><label>Site / tree notes</label><textarea id="f-notes" placeholder="e.g. Large oak near fence, TPO in place…"></textarea></div>
+
+      <!-- TPO fields -->
+      <div class="form-group" id="row-tpo-submitted" style="display:none;"><label>TPO Submitted date</label><input type="date" id="f-tpo-submitted"></div>
+      <div class="form-group" id="row-tpo-expected" style="display:none;"><label>Expected approval (auto)</label><input type="date" id="f-tpo-expected" readonly style="background:var(--cream-dark);"></div>
+
+      <!-- Pending TPO checkbox -->
+      <div class="form-group full" id="row-tpo-check" style="display:none;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;">
+          <input type="checkbox" id="f-tpo" style="width:16px;height:16px;accent-color:var(--moss);cursor:pointer;">
+          <span style="font-weight:500;color:var(--text);">TPO application submitted</span>
+        </label>
+      </div>
+
+      <!-- Archive options -->
+      <div class="form-group full" id="row-archive" style="display:none;">
+        <label>Archive follow-up reminder</label>
+        <select id="f-archive-followup">
+          <option value="">No reminder</option>
+          <option value="6m">6 months</option>
+          <option value="12m">12 months</option>
+          <option value="custom">Custom date</option>
+        </select>
+      </div>
+      <div class="form-group full" id="row-archive-custom" style="display:none;">
+        <label>Custom reminder date</label>
+        <input type="date" id="f-archive-date">
+      </div>
+
+      <!-- Link jobs -->
+      <div class="form-group full" id="row-link" style="display:none;">
+        <label>Link to another job (same day — splits costs)</label>
+        <select id="f-linked-job">
+          <option value="">No linked job</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="costs-section">
+      <h3>Job costs</h3>
+      <div style="margin-bottom:1rem;">
+        <div class="costs-subsection-title">Staff — days on job</div>
+        <div class="staff-row">
+          <div class="staff-name-col"><div class="staff-name">Alex &amp; Emily</div><div class="staff-role">Admin</div></div>
+          <div class="staff-rate">£200/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-alex" oninput="updateCosts()">
+          <div class="days-cost" id="cost-alex">£0</div>
+        </div>
+        <div class="staff-row">
+          <div class="staff-name-col"><div class="staff-name">Jeb</div><div class="staff-role">Groundworker</div></div>
+          <div class="staff-rate">£120/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-jeb" oninput="updateCosts()">
+          <div class="days-cost" id="cost-jeb">£0</div>
+        </div>
+        <div class="staff-row">
+          <div class="staff-name-col"><div class="staff-name">Ryan</div><div class="staff-role">Climber</div></div>
+          <div class="staff-rate">£170/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-ryan" oninput="updateCosts()">
+          <div class="days-cost" id="cost-ryan">£0</div>
+        </div>
+        <div class="staff-row">
+          <div class="staff-name-col"><div class="staff-name">Callum</div><div class="staff-role">Climber</div></div>
+          <div class="staff-rate">£180/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-callum" oninput="updateCosts()">
+          <div class="days-cost" id="cost-callum">£0</div>
+        </div>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <div class="costs-subsection-title">Equipment</div>
+        <div class="equip-row">
+          <div class="equip-name">Chipper</div><div class="equip-rate">£80/day</div>
+          <input class="days-input" type="number" min="0" step="0.5" value="0" id="days-chipper" oninput="updateCosts()">
+          <div class="days-cost" id="cost-chipper">£0</div>
+        </div>
+      </div>
+      <div id="linked-cost-info" style="display:none;" class="linked-jobs-section">
+        <div class="linked-jobs-title">Shared with linked job</div>
+        <div id="linked-cost-detail"></div>
+        <div class="shared-cost-note" id="shared-cost-note"></div>
+      </div>
+      <div class="cost-summary">
+        <div class="cost-sum-item"><div class="cost-sum-label">Total cost</div><div class="cost-sum-val" id="sum-cost">£0</div></div>
+        <div class="cost-sum-item"><div class="cost-sum-label">Quote</div><div class="cost-sum-val" id="sum-quote">£0</div></div>
+        <div class="cost-sum-item"><div class="cost-sum-label">Profit</div><div class="cost-sum-val" id="sum-profit">£0</div></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="deleteBtn" onclick="deleteJob()" style="display:none">Delete job</button>
+      <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveJob()">Save job</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STAFF = [
+  {id:'alex',  name:'Alex & Emily',role:'Admin',      rate:200},
+  {id:'jeb',   name:'Jeb',         role:'Groundworker',rate:120},
+  {id:'ryan',  name:'Ryan',        role:'Climber',    rate:170},
+  {id:'callum',name:'Callum',      role:'Climber',    rate:180},
+];
+const EQUIPMENT = [{id:'chipper',name:'Chipper',rate:80}];
+
+const SUPABASE_URL = 'https://dmjdnvserproglvyurez.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_8_bMUsdLbtFo4x8popoXqA_9ujj9NsC';
+const TABLE = 'canopy_jobs';
+
+let jobs = [], editingId = null, activeFilter = 'all';
+let schedView = 'cards', archiveTab = 'lost', plFilter = 'all';
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+
+// ── SUPABASE ──────────────────────────────────────────────
+function sbH(extra){return Object.assign({'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=representation'},extra||{});}
+function showSync(msg,err){const el=document.getElementById('sync-status');if(el){el.textContent=msg;el.style.color=err?'#f9a8a0':'var(--moss-pale)';}}
+
+async function loadJobs(){
+  showSync('Connecting…');
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=created_at.desc`,{headers:sbH()});
+    const body=await res.json().catch(()=>({}));
+    if(!res.ok){
+      const msg=(body.message||body.hint||'')+'';
+      if(body.code==='42P01'||msg.includes('does not exist')){showSetupBanner();jobs=getSampleJobs();showSync('Table not found',true);}
+      else{showSync('Error: '+(body.message||res.status),true);jobs=getSampleJobs();}
+    } else {
+      const rows=Array.isArray(body)?body:[];
+      jobs=rows.map(r=>({...r.data,id:r.id}));
+      if(!jobs.length){jobs=getSampleJobs();showSync('Seeding…');for(const j of jobs)await upsertRemote(j);}
+      else showSync('Synced ✓');
+    }
+  }catch(e){showSync('Cannot reach database',true);console.error(e);jobs=getSampleJobs();}
+  render();
+}
+
+function showSetupBanner(){
+  if(document.getElementById('setup-banner'))return;
+  const b=document.createElement('div');b.id='setup-banner';
+  b.style.cssText='background:#7A5230;color:#F5F0E8;padding:14px 1.5rem;font-size:13px;line-height:1.7;';
+  b.innerHTML='<strong>⚠ Run this SQL in Supabase to set up the table, then refresh.</strong><br><code style="display:block;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;margin-top:8px;font-size:11px;user-select:all;">create table canopy_jobs(id text primary key,data jsonb not null,created_at timestamptz default now());alter table canopy_jobs enable row level security;create policy "allow all" on canopy_jobs for all using(true) with check(true);</code><button onclick="this.parentElement.remove()" style="margin-top:8px;padding:5px 12px;background:var(--moss);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">Dismiss</button>';
+  document.getElementById('statsBar').after(b);
+}
+
+async function upsertRemote(job){
+  showSync('Saving…');
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`,{method:'POST',headers:sbH({'Prefer':'resolution=merge-duplicates,return=representation'}),body:JSON.stringify({id:job.id,data:job})});
+    if(!res.ok)throw new Error((await res.json().catch(()=>({}))).message||res.status);
+    showSync('Saved ✓');
+  }catch(e){showSync('Save failed',true);console.error(e);}
+}
+
+async function deleteRemote(id){
+  try{await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${id}`,{method:'DELETE',headers:sbH()});showSync('Deleted ✓');}
+  catch(e){showSync('Delete failed',true);}
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function fmt(d){if(!d)return null;return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function fmtShort(d){if(!d)return '';return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+function isOverdue(job){if(!job.followup)return false;return new Date(job.followup)<new Date(new Date().toDateString())&&job.status!=='done'&&job.status!=='archived-completed';}
+function badgeClass(t){return{pruning:'badge-pruning',felling:'badge-felling',survey:'badge-survey',stump:'badge-stump',hedge:'badge-hedge'}[t]||'badge-other';}
+function typeLabel(t){return{pruning:'Pruning',felling:'Felling',survey:'Survey',stump:'Stump removal',hedge:'Hedge trim',other:'Other'}[t]||t;}
+function invLabel(i){return{quoted:'Quoted',invoiced:'Invoiced',paid:'Paid',unpaid:'Overdue'}[i]||i;}
+function invClass(i){return{quoted:'inv-quoted',invoiced:'inv-invoiced',paid:'inv-paid',unpaid:'inv-unpaid'}[i]||'';}
+function marginClass(m){return m>=40?'margin-good':m>=15?'margin-ok':'margin-bad';}
+
+function jobTotalCost(job,shareWith){
+  if(!job.costs)return 0;
+  let t=0;
+  STAFF.forEach(s=>{t+=(job.costs['days-'+s.id]||0)*s.rate;});
+  EQUIPMENT.forEach(e=>{t+=(job.costs['days-'+e.id]||0)*e.rate;});
+  if(shareWith)t=t/2;
+  return t;
+}
+
+function getEffectiveCost(job){
+  // if job is linked, split cost with linked job
+  if(job.linkedJobId){
+    const linked=jobs.find(j=>j.id===job.linkedJobId);
+    if(linked)return jobTotalCost(job,true);
+  }
+  // check if another job links to this one
+  const linker=jobs.find(j=>j.linkedJobId===job.id);
+  if(linker)return jobTotalCost(job,true);
+  return jobTotalCost(job,false);
+}
+
+// ── COSTS MODAL ───────────────────────────────────────────
+function updateCosts(){
+  let total=0;
+  STAFF.forEach(s=>{
+    const days=parseFloat(document.getElementById('days-'+s.id).value)||0;
+    const cost=days*s.rate;
+    document.getElementById('cost-'+s.id).textContent='£'+cost.toLocaleString('en-GB');
+    total+=cost;
+  });
+  EQUIPMENT.forEach(e=>{
+    const days=parseFloat(document.getElementById('days-'+e.id).value)||0;
+    const cost=days*e.rate;
+    document.getElementById('cost-'+e.id).textContent='£'+cost.toLocaleString('en-GB');
+    total+=cost;
+  });
+
+  // check if linked job selected — split cost display
+  const linkedId=document.getElementById('f-linked-job').value;
+  const linkedJob=linkedId?jobs.find(j=>j.id===linkedId):null;
+  if(linkedJob){
+    document.getElementById('linked-cost-info').style.display='block';
+    document.getElementById('linked-cost-detail').innerHTML=`<div class="linked-job-item"><span>${linkedJob.name}</span><span style="color:var(--text-light)">${typeLabel(linkedJob.type)}</span></div>`;
+    document.getElementById('shared-cost-note').textContent='Staff/equipment costs split equally between both jobs (÷2 each)';
+    total=total/2;
+  } else {
+    document.getElementById('linked-cost-info').style.display='none';
+  }
+
+  const quote=parseFloat(document.getElementById('f-quote').value)||0;
+  const profit=quote-total;
+  document.getElementById('sum-cost').textContent='£'+total.toLocaleString('en-GB');
+  document.getElementById('sum-quote').textContent='£'+quote.toLocaleString('en-GB');
+  const profitEl=document.getElementById('sum-profit');
+  profitEl.textContent=(profit>=0?'£':'-£')+Math.abs(profit).toLocaleString('en-GB');
+  profitEl.className='cost-sum-val '+(profit>=0?'profit-pos':'profit-neg');
+}
+
+function getCostData(){
+  const data={};
+  STAFF.forEach(s=>{data['days-'+s.id]=parseFloat(document.getElementById('days-'+s.id).value)||0;});
+  EQUIPMENT.forEach(e=>{data['days-'+e.id]=parseFloat(document.getElementById('days-'+e.id).value)||0;});
+  return data;
+}
+
+function loadCostData(costs){
+  const c=costs||{};
+  STAFF.forEach(s=>{document.getElementById('days-'+s.id).value=c['days-'+s.id]||0;});
+  EQUIPMENT.forEach(e=>{document.getElementById('days-'+e.id).value=c['days-'+e.id]||0;});
+  updateCosts();
+}
+
+// ── STATUS FIELD TOGGLES ──────────────────────────────────
+function toggleStatusFields(){
+  const s=document.getElementById('f-status').value;
+  // followup label
+  document.getElementById('followup-label').textContent=s==='scheduled'?'Scheduled for':'Follow-up date';
+  // TPO fields
+  document.getElementById('row-tpo-submitted').style.display=s==='tpo'?'flex':'none';
+  document.getElementById('row-tpo-expected').style.display=s==='tpo'?'flex':'none';
+  document.getElementById('row-tpo-check').style.display=s==='pending'?'block':'none';
+  // archive follow-up
+  const isArchive=s==='archived-lost'||s==='archived-completed';
+  document.getElementById('row-archive').style.display=isArchive?'block':'none';
+  document.getElementById('row-archive-custom').style.display='none';
+  // link job (show for scheduled/pending/tpo)
+  document.getElementById('row-link').style.display=(s==='scheduled'||s==='pending'||s==='tpo')?'flex':'none';
+}
+
+function onTpoDateChange(){
+  const d=document.getElementById('f-tpo-submitted').value;
+  if(!d)return;
+  const dt=new Date(d);dt.setDate(dt.getDate()+42);
+  document.getElementById('f-tpo-expected').value=dt.toISOString().split('T')[0];
+}
+
+// ── RENDER CARD ───────────────────────────────────────────
+function renderCard(job){
+  const od=isOverdue(job);
+  const fuDate=job.followup?fmt(job.followup):null;
+  const cost=getEffectiveCost(job);
+  const profit=(job.quote||0)-cost;
+  const margin=job.quote?Math.round((profit/job.quote)*100):null;
+  const showMargin=cost>0&&job.quote>0;
+  const isLinked=job.linkedJobId||jobs.some(j=>j.linkedJobId===job.id);
+  const schedLabel=job.status==='scheduled'?'Scheduled for:':'Follow-up:';
+
+  // TPO progress bar
+  let tpoBar='';
+  if(job.status==='tpo'&&job.tpoSubmitted){
+    const daysSince=Math.floor((new Date()-new Date(job.tpoSubmitted))/(1000*60*60*24));
+    const pct=Math.min(100,Math.round((daysSince/42)*100));
+    const overdueTpo=daysSince>42;
+    tpoBar=`<div style="margin-top:6px;">
+      <div style="font-size:11px;color:var(--text-light);margin-bottom:3px;">TPO: day ${daysSince} of 42 ${overdueTpo?'<span style="color:var(--red);font-weight:600;">— OVERDUE</span>':''}</div>
+      <div class="tpo-progress"><div class="tpo-progress-fill" style="width:${pct}%;background:${overdueTpo?'var(--red)':daysSince>35?'var(--amber)':'var(--sky)'};"></div></div>
+      ${job.tpoExpected?`<div style="font-size:11px;color:var(--text-light);margin-top:2px;">Expected: ${fmt(job.tpoExpected)}</div>`:''}
+    </div>`;
+  }
+
+  return `<div class="job-card${od?' overdue':''}" onclick="openViewModal('${job.id}')">
+    <div class="card-top">
+      <div class="customer-name">${job.name}</div>
+      <span class="job-type-badge ${badgeClass(job.type)}">${typeLabel(job.type)}</span>
+    </div>
+    ${job.address?`<div class="card-address">📍 ${job.address}</div>`:''}
+    ${job.notes?`<div class="card-notes">${job.notes.length>90?job.notes.slice(0,90)+'…':job.notes}</div>`:''}
+    <div class="card-bottom">
+      <div class="quote-val">${job.quote?'£'+Number(job.quote).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0}):'—'}</div>
+      <span class="invoice-badge ${invClass(job.invoice)}">${invLabel(job.invoice)}</span>
+    </div>
+    ${showMargin?`<span class="margin-pill ${marginClass(margin)}">${margin>=0?margin+'% margin':'Loss: £'+Math.abs(profit).toLocaleString('en-GB')}</span>`:''}
+    ${isLinked?`<span class="linked-badge">🔗 Linked job</span>`:''}
+    ${job.status==='pending'?`<div style="margin-top:6px;"><span class="tpo-badge" style="background:${job.tpo?'#e0eef8':'#fef3e2'};color:${job.tpo?'#1a4f70':'#7a4c00'};">TPO ${job.tpo?'✓ submitted':'— not submitted'}</span></div>`:''}
+    ${tpoBar}
+    ${fuDate?`<div class="followup-row${od?' overdue-text':''}">
+      <span>📅 ${schedLabel} ${fuDate}${od?' · Overdue':''}</span>
+      <button onclick="event.stopPropagation();addToCalendar('${job.id}')" style="font-size:11px;padding:3px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text-mid);cursor:pointer;">+ Cal</button>
+    </div>`:''}
+  </div>`;
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────
+function render(){
+  // active jobs only (not archived)
+  const activeJobs=jobs.filter(j=>!j.status.startsWith('archived'));
+  const q=(document.getElementById('searchInput')||{}).value?.toLowerCase()||'';
+
+  function matchSearch(j){return !q||j.name.toLowerCase().includes(q)||(j.address||'').toLowerCase().includes(q);}
+  function filteredByStatus(status){return activeJobs.filter(j=>j.status===status&&matchSearch(j));}
+
+  let visibleJobs=activeJobs.filter(j=>{
+    if(!matchSearch(j))return false;
+    if(activeFilter==='all')return true;
+    if(activeFilter==='overdue')return isOverdue(j);
+    return j.status===activeFilter;
+  });
+
+  // stats
+  const totalQuote=activeJobs.reduce((s,j)=>s+Number(j.quote||0),0);
+  const outstanding=activeJobs.filter(j=>j.invoice==='invoiced'||j.invoice==='unpaid').reduce((s,j)=>s+Number(j.quote||0),0);
+  const overdueCount=activeJobs.filter(j=>isOverdue(j)).length;
+  const totalCostAll=activeJobs.reduce((s,j)=>s+getEffectiveCost(j),0);
+  const totalProfit=totalQuote-totalCostAll;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat"><div class="stat-num">${activeJobs.length}</div><div class="stat-label">Active jobs</div></div>
+    <div class="stat"><div class="stat-num">${filteredByStatus('quoted').length}</div><div class="stat-label">Quoted</div></div>
+    <div class="stat"><div class="stat-num">${filteredByStatus('pending').length}</div><div class="stat-label">Pending</div></div>
+    <div class="stat"><div class="stat-num">${filteredByStatus('tpo').length}</div><div class="stat-label">TPO</div></div>
+    <div class="stat"><div class="stat-num">${filteredByStatus('scheduled').length}</div><div class="stat-label">Scheduled</div></div>
+    <div class="stat"><div class="stat-num">£${totalQuote.toLocaleString('en-GB')}</div><div class="stat-label">Total quoted</div></div>
+    <div class="stat"><div class="stat-num" style="color:var(--amber-light)">£${outstanding.toLocaleString('en-GB')}</div><div class="stat-label">Outstanding</div></div>
+    ${overdueCount?`<div class="stat"><div class="stat-num" style="color:#F9A8A0">${overdueCount}</div><div class="stat-label">Overdue</div></div>`:''}
+  `;
+
+  // board columns
+  const showAll=activeFilter==='all';
+  const colJobs=status=>showAll?filteredByStatus(status):visibleJobs.filter(j=>j.status===status);
+  document.getElementById('board').innerHTML=`
+    <div class="column">
+      <div class="col-header"><div class="col-title"><div class="col-dot dot-quoted"></div>Quoted</div><div class="col-count">${colJobs('quoted').length}</div></div>
+      ${colJobs('quoted').map(renderCard).join('')}${colJobs('quoted').length===0?'<div class="empty-col">No quoted jobs</div>':''}
+    </div>
+    <div class="column">
+      <div class="col-header"><div class="col-title"><div class="col-dot dot-pending"></div>Pending</div><div class="col-count">${colJobs('pending').length}</div></div>
+      ${colJobs('pending').map(renderCard).join('')}${colJobs('pending').length===0?'<div class="empty-col">No pending jobs</div>':''}
+    </div>
+    <div class="column">
+      <div class="col-header"><div class="col-title"><div class="col-dot dot-tpo"></div>TPO Approval</div><div class="col-count">${colJobs('tpo').length}</div></div>
+      ${colJobs('tpo').map(renderCard).join('')}${colJobs('tpo').length===0?'<div class="empty-col">No TPO jobs</div>':''}
+    </div>
+    <div class="column">
+      <div class="col-header"><div class="col-title"><div class="col-dot dot-scheduled"></div>Scheduled</div><div class="col-count">${colJobs('scheduled').length}</div></div>
+      ${colJobs('scheduled').map(renderCard).join('')}${colJobs('scheduled').length===0?'<div class="empty-col">No scheduled jobs</div>':''}
+    </div>
+    <div class="column">
+      <div class="col-header"><div class="col-title"><div class="col-dot dot-done"></div>Done</div><div class="col-count">${colJobs('done').length}</div></div>
+      ${colJobs('done').map(renderCard).join('')}${colJobs('done').length===0?'<div class="empty-col">No completed jobs</div>':''}
+    </div>
+  `;
+
+  renderScheduled();
+  renderReminders();
+  renderArchive();
+}
+
+// ── SCHEDULED VIEW ────────────────────────────────────────
+function setSchedView(v,el){
+  schedView=v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sched-cards').style.display=v==='cards'?'block':'none';
+  document.getElementById('sched-calendar').style.display=v==='calendar'?'block':'none';
+  if(v==='calendar')renderCalendar();
+}
+
+function renderScheduled(){
+  const sched=jobs.filter(j=>j.status==='scheduled').sort((a,b)=>(a.followup||'').localeCompare(b.followup||''));
+  document.getElementById('sched-cards').innerHTML=sched.length?sched.map(renderCard).join(''):'<div style="color:var(--text-light);font-style:italic;padding:2rem;text-align:center;">No scheduled jobs</div>';
+  renderWeekPL();
+  if(schedView==='calendar')renderCalendar();
+}
+
+function setPlFilter(f,el){
+  plFilter=f;
+  document.querySelectorAll('.pl-filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderWeekPL();
+}
+
+function renderWeekPL(){
+  const plJobs=jobs.filter(j=>{
+    if(j.status.startsWith('archived'))return false;
+    if(plFilter==='scheduled')return j.status==='scheduled';
+    if(plFilter==='done')return j.status==='done';
+    return j.status==='scheduled'||j.status==='done';
+  }).filter(j=>j.followup);
+
+  const container=document.getElementById('weekPL');
+  const filterBar=`<div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+    <button class="pl-filter-btn filter-btn${plFilter==='all'?' active':''}" onclick="setPlFilter('all',this)">All jobs</button>
+    <button class="pl-filter-btn filter-btn${plFilter==='scheduled'?' active':''}" onclick="setPlFilter('scheduled',this)">Scheduled only</button>
+    <button class="pl-filter-btn filter-btn${plFilter==='done'?' active':''}" onclick="setPlFilter('done',this)">Done only</button>
+  </div>`;
+
+  if(!plJobs.length){container.innerHTML=filterBar+'<div style="color:var(--text-light);font-style:italic;font-size:13px;">No jobs to analyse</div>';return;}
+
+  const weeks={};
+  plJobs.forEach(j=>{
+    const d=new Date(j.followup+'T00:00:00');
+    const day=d.getDay();const diff=d.getDate()-(day===0?6:day-1);
+    const mon=new Date(d);mon.setDate(diff);
+    const key=mon.toISOString().split('T')[0];
+    if(!weeks[key])weeks[key]=[];
+    weeks[key].push(j);
+  });
+
+  const totalQuote=plJobs.reduce((s,j)=>s+Number(j.quote||0),0);
+  const totalCost=plJobs.reduce((s,j)=>s+getEffectiveCost(j),0);
+  const totalProfit=totalQuote-totalCost;
+  const totalMargin=totalQuote?Math.round((totalProfit/totalQuote)*100):0;
+
+  const summaryRow=`<div class="week-row" style="background:var(--bark);color:var(--cream);margin-bottom:1rem;">
+    <div><div class="week-label" style="color:var(--cream);">Total (${plJobs.length} jobs)</div><div class="week-sub" style="color:var(--moss-pale);">All periods</div></div>
+    <div class="week-val"><div class="week-val-num" style="color:var(--cream);">£${totalQuote.toLocaleString('en-GB')}</div><div class="week-val-label" style="color:var(--moss-pale);">Quoted</div></div>
+    <div class="week-val"><div class="week-val-num" style="color:var(--cream);">£${Math.round(totalCost).toLocaleString('en-GB')}</div><div class="week-val-label" style="color:var(--moss-pale);">Costs</div></div>
+    <div class="week-val"><div class="week-val-num" style="color:${totalProfit>=0?'#8fd47a':'#f9a8a0'}">${totalProfit>=0?'£':'-£'}${Math.abs(Math.round(totalProfit)).toLocaleString('en-GB')}</div><div class="week-val-label" style="color:var(--moss-pale);">Profit</div></div>
+    <div class="week-val"><div class="week-val-num" style="color:${totalProfit>=0?'#8fd47a':'#f9a8a0'}">${totalMargin}%</div><div class="week-val-label" style="color:var(--moss-pale);">Margin</div></div>
+  </div>`;
+
+  const weekRows=Object.keys(weeks).sort().map(wk=>{
+    const wJobs=weeks[wk];
+    const wQuote=wJobs.reduce((s,j)=>s+Number(j.quote||0),0);
+    const wCost=wJobs.reduce((s,j)=>s+getEffectiveCost(j),0);
+    const wProfit=wQuote-wCost;
+    const mon=new Date(wk+'T00:00:00');
+    const sun=new Date(mon);sun.setDate(sun.getDate()+6);
+    const label=fmtShort(wk)+' – '+fmtShort(sun.toISOString().split('T')[0]);
+    const doneCount=wJobs.filter(j=>j.status==='done').length;
+    const schedCount=wJobs.filter(j=>j.status==='scheduled').length;
+    const subLabel=`${wJobs.length} job${wJobs.length!==1?'s':''}${schedCount&&doneCount?' ('+schedCount+' sched, '+doneCount+' done)':schedCount?' ('+schedCount+' scheduled)':' ('+doneCount+' done)'}`;
+    return `<div class="week-row">
+      <div><div class="week-label">${label}</div><div class="week-sub">${subLabel}</div></div>
+      <div class="week-val"><div class="week-val-num">£${wQuote.toLocaleString('en-GB')}</div><div class="week-val-label">Quoted</div></div>
+      <div class="week-val"><div class="week-val-num">£${Math.round(wCost).toLocaleString('en-GB')}</div><div class="week-val-label">Costs</div></div>
+      <div class="week-val"><div class="week-val-num ${wProfit>=0?'week-profit-pos':'week-profit-neg'}">${wProfit>=0?'£':'-£'}${Math.abs(Math.round(wProfit)).toLocaleString('en-GB')}</div><div class="week-val-label">Profit</div></div>
+      <div class="week-val"><div class="week-val-num ${wProfit>=0?'week-profit-pos':'week-profit-neg'}">${wQuote?Math.round((wProfit/wQuote)*100):0}%</div><div class="week-val-label">Margin</div></div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML=filterBar+summaryRow+weekRows;
+}
+
+// ── CALENDAR ──────────────────────────────────────────────
+function renderCalendar(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent=months[calMonth]+' '+calYear;
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let html=days.map(d=>`<div class="cal-header-cell">${d}</div>`).join('');
+  const first=new Date(calYear,calMonth,1);
+  const startDay=(first.getDay()+6)%7;
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const today=new Date().toISOString().split('T')[0];
+  const schedJobs=jobs.filter(j=>j.status==='scheduled'&&j.followup);
+
+  for(let i=0;i<startDay;i++){
+    const d=daysInPrev-startDay+1+i;
+    html+=`<div class="cal-cell other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dayJobs=schedJobs.filter(j=>j.followup===dateStr);
+    const isToday=dateStr===today;
+    html+=`<div class="cal-cell${isToday?' today':''}">
+      <div class="cal-day-num">${d}</div>
+      ${dayJobs.map(j=>`<div class="cal-job-chip" onclick="openViewModal('${j.id}')" title="${j.name}">${j.name.split(' ')[0]}</div>`).join('')}
+    </div>`;
+  }
+  const total=startDay+daysInMonth;const rem=total%7===0?0:7-(total%7);
+  for(let i=1;i<=rem;i++)html+=`<div class="cal-cell other-month"><div class="cal-day-num">${i}</div></div>`;
+  document.getElementById('calGrid').innerHTML=html;
+}
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
+
+// ── REMINDERS ─────────────────────────────────────────────
+function renderReminders(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const reminders=[];
+
+  // archive follow-ups
+  jobs.filter(j=>j.status.startsWith('archived')&&j.archiveFollowup).forEach(j=>{
+    reminders.push({job:j,date:j.archiveFollowup,type:'follow-up'});
+  });
+
+  // TPO approaching/overdue
+  jobs.filter(j=>j.status==='tpo'&&j.tpoExpected).forEach(j=>{
+    reminders.push({job:j,date:j.tpoExpected,type:'tpo'});
+  });
+
+  reminders.sort((a,b)=>a.date.localeCompare(b.date));
+
+  if(!reminders.length){
+    document.getElementById('reminderList').innerHTML='<div style="color:var(--text-light);font-style:italic;padding:2rem;text-align:center;">No reminders set</div>';
+    return;
+  }
+
+  document.getElementById('reminderList').innerHTML=reminders.map(r=>{
+    const d=new Date(r.date+'T00:00:00');
+    const diffDays=Math.ceil((d-today)/(1000*60*60*24));
+    const isDue=diffDays<=0;const isSoon=diffDays>0&&diffDays<=7;
+    const cls=isDue?'due':isSoon?'soon':'';
+    const badge=isDue?`<span class="reminder-badge fu-due">Overdue</span>`:isSoon?`<span class="reminder-badge fu-soon">In ${diffDays} day${diffDays!==1?'s':''}</span>`:`<span class="reminder-badge fu-ok">In ${diffDays} days</span>`;
+    return `<div class="reminder-card ${cls}" onclick="openViewModal('${r.job.id}')">
+      <div class="reminder-date-col">
+        <div class="reminder-day">${d.getDate()}</div>
+        <div class="reminder-month">${d.toLocaleDateString('en-GB',{month:'short'})}</div>
+      </div>
+      <div class="reminder-content">
+        <div class="reminder-name">${r.job.name}</div>
+        <div class="reminder-detail">${typeLabel(r.job.type)}${r.job.address?' · '+r.job.address:''}</div>
+        <div style="margin-top:4px;">${badge} <span style="font-size:11px;color:var(--text-light);margin-left:6px;">${r.type==='tpo'?'TPO expected approval':'Follow-up reminder'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ARCHIVE ───────────────────────────────────────────────
+function setArchiveTab(tab,el){
+  archiveTab=tab;
+  document.querySelectorAll('.archive-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderArchive();
+}
+
+function renderArchive(){
+  const status=archiveTab==='lost'?'archived-lost':'archived-completed';
+  const archived=jobs.filter(j=>j.status===status).sort((a,b)=>(b.archivedAt||'').localeCompare(a.archivedAt||''));
+  if(!archived.length){
+    document.getElementById('archiveList').innerHTML=`<div style="color:var(--text-light);font-style:italic;padding:2rem;text-align:center;">${archiveTab==='lost'?'No lost quotes':'No completed & paid jobs'}</div>`;
+    return;
+  }
+  document.getElementById('archiveList').innerHTML=archived.map(job=>{
+    const cost=getEffectiveCost(job);
+    const profit=(job.quote||0)-cost;
+    const margin=job.quote?Math.round((profit/job.quote)*100):null;
+    const fuDate=job.archiveFollowup?fmt(job.archiveFollowup):null;
+    const today=new Date();today.setHours(0,0,0,0);
+    let fuBadge='';
+    if(fuDate){
+      const d=new Date(job.archiveFollowup+'T00:00:00');
+      const diff=Math.ceil((d-today)/(1000*60*60*24));
+      fuBadge=diff<=0?`<span class="followup-badge fu-due">Follow-up overdue</span>`:diff<=30?`<span class="followup-badge fu-soon">Follow-up in ${diff} days</span>`:`<span class="followup-badge fu-ok">Follow-up: ${fuDate}</span>`;
+    }
+    return `<div class="archive-card" onclick="openViewModal('${job.id}')">
+      <div class="archive-card-top">
+        <div><div class="archive-name">${job.name}</div></div>
+        <span class="job-type-badge ${badgeClass(job.type)}">${typeLabel(job.type)}</span>
+      </div>
+      <div class="archive-meta">📍 ${job.address||'No address'} · ${job.archivedAt?'Archived '+fmt(job.archivedAt):''}</div>
+      <div class="archive-bottom">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="quote-val" style="font-size:15px;">£${Number(job.quote||0).toLocaleString('en-GB')}</div>
+          ${margin!==null?`<span class="margin-pill ${marginClass(margin)}">${margin}% margin</span>`:''}
+          ${fuBadge}
+        </div>
+        <button class="btn-restore" onclick="event.stopPropagation();restoreJob('${job.id}')">Restore</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function restoreJob(id){
+  const job=jobs.find(j=>j.id===id);
+  if(!job)return;
+  job.status='quoted';
+  delete job.archivedAt;
+  delete job.archiveFollowup;
+  render();
+  upsertRemote(job);
+}
+
+// ── MODAL ─────────────────────────────────────────────────
+function populateLinkedJobSelect(currentId){
+  const sel=document.getElementById('f-linked-job');
+  const activeJobs=jobs.filter(j=>!j.status.startsWith('archived')&&j.id!==currentId);
+  sel.innerHTML='<option value="">No linked job</option>'+activeJobs.map(j=>`<option value="${j.id}">${j.name} – ${typeLabel(j.type)}</option>`).join('');
+}
+
+function openAddModal(){
+  editingId=null;
+  document.getElementById('modalTitle').textContent='New Job';
+  document.getElementById('deleteBtn').style.display='none';
+  ['name','address','quote','followup','phone','notes','tpo-submitted','tpo-expected','archive-date'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value='';});
+  ['type','status','invoice'].forEach(f=>{const el=document.getElementById('f-'+f);if(el){if(f==='status')el.value='quoted';else if(f==='invoice')el.value='quoted';else if(f==='type')el.value='pruning';}});
+  document.getElementById('f-tpo').checked=false;
+  loadCostData({});
+  populateLinkedJobSelect(null);
+  toggleStatusFields();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function openViewModal(id){
+  const job=jobs.find(j=>j.id===id);
+  if(!job)return;
+  editingId=id;
+  document.getElementById('modalTitle').textContent=job.name;
+  document.getElementById('deleteBtn').style.display='inline-block';
+  document.getElementById('f-name').value=job.name||'';
+  document.getElementById('f-address').value=job.address||'';
+  document.getElementById('f-type').value=job.type||'other';
+  document.getElementById('f-status').value=job.status||'quoted';
+  document.getElementById('f-quote').value=job.quote||'';
+  document.getElementById('f-invoice').value=job.invoice||'quoted';
+  document.getElementById('f-followup').value=job.followup||'';
+  document.getElementById('f-phone').value=job.phone||'';
+  document.getElementById('f-notes').value=job.notes||'';
+  document.getElementById('f-tpo').checked=job.tpo||false;
+  document.getElementById('f-tpo-submitted').value=job.tpoSubmitted||'';
+  document.getElementById('f-tpo-expected').value=job.tpoExpected||'';
+  document.getElementById('f-archive-followup').value=job.archiveFollowup?'custom':'';
+  document.getElementById('f-archive-date').value=job.archiveFollowup||'';
+  loadCostData(job.costs||{});
+  populateLinkedJobSelect(id);
+  document.getElementById('f-linked-job').value=job.linkedJobId||'';
+  toggleStatusFields();
+  updateCosts();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+async function saveJob(){
+  const status=document.getElementById('f-status').value;
+  let archiveFollowup=null;
+  if(status.startsWith('archived')){
+    const fuSel=document.getElementById('f-archive-followup').value;
+    if(fuSel==='6m'){const d=new Date();d.setMonth(d.getMonth()+6);archiveFollowup=d.toISOString().split('T')[0];}
+    else if(fuSel==='12m'){const d=new Date();d.setMonth(d.getMonth()+12);archiveFollowup=d.toISOString().split('T')[0];}
+    else if(fuSel==='custom')archiveFollowup=document.getElementById('f-archive-date').value||null;
+  }
+
+  const job={
+    id:editingId||uid(),
+    name:document.getElementById('f-name').value.trim(),
+    address:document.getElementById('f-address').value.trim(),
+    type:document.getElementById('f-type').value,
+    status:status,
+    quote:parseFloat(document.getElementById('f-quote').value)||0,
+    invoice:document.getElementById('f-invoice').value,
+    followup:document.getElementById('f-followup').value||null,
+    phone:document.getElementById('f-phone').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),
+    tpo:document.getElementById('f-tpo').checked,
+    tpoSubmitted:document.getElementById('f-tpo-submitted').value||null,
+    tpoExpected:document.getElementById('f-tpo-expected').value||null,
+    costs:getCostData(),
+    linkedJobId:document.getElementById('f-linked-job').value||null,
+    archiveFollowup:archiveFollowup,
+    archivedAt:status.startsWith('archived')?(editingId?((jobs.find(j=>j.id===editingId)||{}).archivedAt||new Date().toISOString().split('T')[0]):new Date().toISOString().split('T')[0]):null,
+  };
+  if(!job.name){alert('Please enter a customer name.');return;}
+  if(editingId){const idx=jobs.findIndex(j=>j.id===editingId);if(idx>-1)jobs[idx]=job;}
+  else jobs.unshift(job);
+  closeModal('addModal');render();
+  await upsertRemote(job);
+}
+
+async function deleteJob(){
+  if(!editingId)return;
+  if(!confirm('Delete this job? This cannot be undone.'))return;
+  const id=editingId;
+  jobs=jobs.filter(j=>j.id!==id);
+  closeModal('addModal');render();
+  deleteRemote(id);
+}
+
+// ── CALENDAR EXPORT ───────────────────────────────────────
+function addToCalendar(id){
+  const job=jobs.find(j=>j.id===id);
+  if(!job||!job.followup)return;
+  const dt=job.followup.replace(/-/g,'');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Canopy Arborist//EN','BEGIN:VEVENT',
+    'UID:'+job.id+'@canopy','DTSTART;VALUE=DATE:'+dt,'DTEND;VALUE=DATE:'+dt,
+    'SUMMARY:'+(job.status==='scheduled'?'Scheduled: ':'Follow-up: ')+job.name,
+    'DESCRIPTION:'+[typeLabel(job.type),job.address,job.notes].filter(Boolean).join(' | '),
+    'LOCATION:'+(job.address||''),'BEGIN:VALARM','TRIGGER:-PT0S','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='job-'+job.name.replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.ics';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// ── TAB NAVIGATION ────────────────────────────────────────
+function showTab(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='scheduled'){renderScheduled();}
+  if(id==='archive'){renderArchive();}
+  if(id==='reminders'){renderReminders();}
+}
+
+function setFilter(f,el){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+// ── ARCHIVE FOLLOW-UP SELECT ──────────────────────────────
+document.getElementById('f-archive-followup').addEventListener('change',function(){
+  document.getElementById('row-archive-custom').style.display=this.value==='custom'?'block':'none';
+});
+
+// ── TPO DATE AUTO FILL ────────────────────────────────────
+document.getElementById('f-tpo-submitted').addEventListener('change',onTpoDateChange);
+
+// ── MODAL CLOSE ───────────────────────────────────────────
+document.getElementById('addModal').addEventListener('click',function(e){if(e.target===this)closeModal('addModal');});
+
+// ── SAMPLE DATA ───────────────────────────────────────────
+function getSampleJobs(){
+  const today=new Date();
+  const d=offset=>{const dt=new Date(today);dt.setDate(dt.getDate()+offset);return dt.toISOString().split('T')[0];};
+  const tpoSub=d(-20);const tpoDt=new Date(tpoSub+'T00:00:00');tpoDt.setDate(tpoDt.getDate()+42);
+  return [
+    {id:uid(),name:'Peter Griffiths',address:'3 Hazel Grove, Abergavenny',type:'pruning',status:'quoted',quote:320,invoice:'quoted',followup:d(5),phone:'07811 334455',notes:'Quote sent for crown reduction on large beech.',costs:{'days-alex':0.5,'days-jeb':1,'days-ryan':0,'days-callum':0,'days-chipper':0}},
+    {id:uid(),name:'David & Carol Rees',address:'7 Elm Close, Usk',type:'pruning',status:'pending',quote:280,invoice:'quoted',followup:d(3),phone:'07711 234567',notes:'Two large apple trees, overhanging neighbour.',tpo:false,costs:{'days-alex':0,'days-jeb':1,'days-ryan':1,'days-callum':0,'days-chipper':1}},
+    {id:uid(),name:'Bridget Howells',address:'22 Woodland Rise, Caerleon',type:'felling',status:'tpo',quote:650,invoice:'quoted',followup:d(22),phone:'07890 112233',notes:'Ash with suspected dieback.',tpoSubmitted:tpoSub,tpoExpected:tpoDt.toISOString().split('T')[0],costs:{'days-alex':0.5,'days-jeb':1,'days-ryan':0,'days-callum':1,'days-chipper':1}},
+    {id:uid(),name:'The Old Rectory',address:'Church Rd, Raglan',type:'survey',status:'scheduled',quote:180,invoice:'invoiced',followup:d(7),phone:'01291 690210',notes:'Full site survey for planning application.',costs:{'days-alex':1,'days-jeb':0,'days-ryan':0,'days-callum':0,'days-chipper':0}},
+    {id:uid(),name:'Morgan & Sons Farm',address:'Llangybi, near Usk',type:'hedge',status:'scheduled',quote:420,invoice:'invoiced',followup:d(5),phone:'07722 445566',notes:'Mixed hedgerow approx 80m.',costs:{'days-alex':0,'days-jeb':2,'days-ryan':0,'days-callum':0,'days-chipper':0}},
+    {id:uid(),name:'Sandra Partridge',address:'4 Beech Ave, Monmouth',type:'stump',status:'archived-completed',quote:195,invoice:'paid',followup:null,phone:'07633 887766',notes:'Two stumps ground out.',costs:{'days-alex':0,'days-jeb':1,'days-ryan':0,'days-callum':0,'days-chipper':0},archivedAt:d(-30),archiveFollowup:d(335)},
+    {id:uid(),name:'Cwm Leisure Centre',address:'Cwmbran Town Centre',type:'pruning',status:'archived-completed',quote:1100,invoice:'paid',followup:null,phone:'01633 648900',notes:'Annual contract. Crown thin on 8 limes.',costs:{'days-alex':0.5,'days-jeb':2,'days-ryan':2,'days-callum':0,'days-chipper':2},archivedAt:d(-60),archiveFollowup:d(305)},
+    {id:uid(),name:'Jones Landscaping',address:'Newport Rd, Cwmbran',type:'felling',status:'archived-lost',quote:850,invoice:'quoted',followup:null,phone:'07900 123456',notes:'Customer went with another quote.',costs:{'days-alex':0,'days-jeb':1,'days-ryan':1,'days-callum':1,'days-chipper':1},archivedAt:d(-14)},
+  ];
+}
+
+// ── PIN ───────────────────────────────────────────────────
+const CORRECT_PIN='2025';let pinEntry='';
+function pinPress(d){if(pinEntry.length>=4)return;pinEntry+=d;updatePinDots();if(pinEntry.length===4)setTimeout(function(){checkPin();},150);}
+function pinDel(){pinEntry=pinEntry.slice(0,-1);document.getElementById('pin-error').textContent='';updatePinDots();}
+function updatePinDots(){for(let i=0;i<4;i++){const dot=document.getElementById('dot-'+i);dot.classList.toggle('filled',i<pinEntry.length);dot.classList.remove('error');}}
+function checkPin(){
+  if(pinEntry===CORRECT_PIN){sessionStorage.setItem('canopy_pin','1');document.getElementById('pin-screen').style.display='none';loadJobs();}
+  else{for(let i=0;i<4;i++)document.getElementById('dot-'+i).classList.add('error');document.getElementById('pin-error').textContent='Incorrect PIN — try again';setTimeout(()=>{pinEntry='';updatePinDots();},800);}
+}
+if(sessionStorage.getItem('canopy_pin')==='1'){document.getElementById('pin-screen').style.display='none';loadJobs();}
+</script>
+</body>
+</html>
