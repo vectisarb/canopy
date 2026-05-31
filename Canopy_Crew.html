@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canopy Crew — Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bark:#2C1A0E;--bark-mid:#4A2E18;--bark-light:#7A5230;
+  --moss:#3A5C2E;--moss-light:#5A8A48;--moss-pale:#C8DFC0;
+  --cream:#F5F0E8;--cream-dark:#EDE5D4;
+  --amber:#D4891A;--sky:#4A7A9B;
+  --text:#1A0F08;--text-mid:#5C3D26;--text-light:#8C6845;
+  --border:rgba(74,46,24,0.15);--shadow:0 2px 12px rgba(44,26,14,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:15px;}
+header{background:var(--bark);color:var(--cream);padding:0 1.25rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'DM Serif Display',serif;font-size:20px;display:flex;align-items:center;gap:10px;}
+.logo-icon{width:30px;height:30px;background:var(--moss);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.logo-sub{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--moss-pale);text-transform:uppercase;letter-spacing:.08em;margin-left:4px;}
+.sync{font-size:11px;color:var(--moss-pale);}
+.main{padding:1.25rem;max-width:760px;margin:0 auto;}
+.intro{font-size:13px;color:var(--text-light);margin-bottom:1.25rem;}
+
+.day-group{margin-bottom:1.5rem;}
+.day-head{font-family:'DM Serif Display',serif;font-size:17px;color:var(--bark);margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:10px;}
+.day-head .dow{color:var(--moss);}
+.day-head .cnt{font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text-light);margin-left:auto;}
+.job{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--border);display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);}
+.job.done{opacity:.6;}
+.job-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.ic-pruning{background:#E8F5E0;}
+.ic-felling{background:#FDF0DC;}
+.ic-survey{background:#E0EEF8;}
+.ic-stump{background:#F0E8F8;}
+.ic-hedge{background:#E8F8F0;}
+.ic-other{background:var(--cream-dark);}
+.job-body{flex:1;min-width:0;}
+.job-town{font-weight:600;font-size:16px;color:var(--text);}
+.job-type{font-size:13px;color:var(--text-mid);text-transform:capitalize;}
+.job-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.b-scheduled{background:#E0EEF8;color:#1A4F70;}
+.b-done{background:var(--moss-pale);color:var(--moss);}
+.empty{text-align:center;color:var(--text-light);font-style:italic;padding:3rem 1rem;font-size:14px;}
+.toggle-bar{display:flex;gap:8px;margin-bottom:1.25rem;}
+.tg{padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-mid);}
+.tg.active{background:var(--bark);color:var(--cream);border-color:var(--bark);}
+
+/* PIN */
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--bark-light);background:transparent;transition:background .15s;}
+.pin-dot.filled{background:var(--bark);border-color:var(--bark);}
+.pin-dot.error{border-color:#C0392B;background:#C0392B;}
+.pin-btn{padding:16px;font-size:20px;font-family:'DM Serif Display',serif;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--bark);cursor:pointer;}
+.pin-btn:active{background:var(--cream-dark);}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen" style="position:fixed;inset:0;background:var(--bark);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem;">
+  <div style="background:var(--cream);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:320px;text-align:center;">
+    <div style="width:56px;height:56px;background:var(--moss);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 1rem;">🌳</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:24px;color:var(--bark);margin-bottom:4px;">Canopy Crew</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:1.5rem;">Enter your PIN</div>
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:14px;margin-bottom:1.5rem;">
+      <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div id="pin-error" style="font-size:12px;color:#C0392B;min-height:16px;margin-bottom:12px;"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;">
+      <button class="pin-btn" onclick="pinPress('1')">1</button><button class="pin-btn" onclick="pinPress('2')">2</button><button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button><button class="pin-btn" onclick="pinPress('5')">5</button><button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button><button class="pin-btn" onclick="pinPress('8')">8</button><button class="pin-btn" onclick="pinPress('9')">9</button>
+      <div></div><button class="pin-btn" onclick="pinPress('0')">0</button><button class="pin-btn" onclick="pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="logo"><div class="logo-icon">🌳</div>Canopy<span class="logo-sub">Crew</span></div>
+  <span class="sync" id="sync"></span>
+</header>
+
+<div class="main">
+  <div class="intro">Upcoming jobs. Tap nothing, just check where you're headed. Updated live from the office.</div>
+  <div class="toggle-bar">
+    <button class="tg active" id="tg-upcoming" onclick="setView('upcoming')">Upcoming</button>
+    <button class="tg" id="tg-all" onclick="setView('all')">All</button>
+  </div>
+  <div id="schedule"></div>
+</div>
+
+<script>
+const SUPABASE_URL='https://dmjdnvserproglvyurez.supabase.co';
+const SUPABASE_KEY='sb_publishable_8_bMUsdLbtFo4x8popoXqA_9ujj9NsC';
+const VIEW='canopy_crew_view';
+const CREW_PIN='1111';
+let rows=[], view='upcoming';
+
+function sbH(){return {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};}
+function sync(m,e){const el=document.getElementById('sync');el.textContent=m;el.style.color=e?'#f9a8a0':'var(--moss-pale)';}
+
+async function load(){
+  sync('Loading…');
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/${VIEW}?select=*&order=followup.asc`,{headers:sbH()});
+    const body=await res.json().catch(()=>[]);
+    if(!res.ok){
+      const msg=(body&&(body.message||body.hint))||'';
+      if((body&&body.code==='42P01')||(''+msg).includes('does not exist')){sync('View not set up',true);showSetup();}
+      else{sync('Error loading',true);}
+      rows=[];
+    } else { rows=Array.isArray(body)?body:[]; sync('Up to date'); }
+  }catch(e){sync('No connection',true);rows=[];}
+  render();
+}
+
+function showSetup(){
+  document.getElementById('schedule').innerHTML='<div class="empty">The crew schedule view hasn\u2019t been set up in the database yet. Run the crew_view.sql in Supabase, then refresh.</div>';
+}
+
+function setView(v){
+  view=v;
+  document.getElementById('tg-upcoming').classList.toggle('active',v==='upcoming');
+  document.getElementById('tg-all').classList.toggle('active',v==='all');
+  render();
+}
+
+function icon(t){return {pruning:'🌿',felling:'🪓',survey:'📋',stump:'🪵',hedge:'🌳'}[t]||'🌲';}
+function iconClass(t){return 'ic-'+(({pruning:'pruning',felling:'felling',survey:'survey',stump:'stump',hedge:'hedge'})[t]||'other');}
+function typeLabel(t){return {pruning:'Pruning',felling:'Felling',survey:'Survey',stump:'Stump removal',hedge:'Hedge trimming'}[t]||'Tree work';}
+function fmtDay(d){const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});}
+function dow(d){return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'});}
+
+function render(){
+  const today=new Date().toISOString().split('T')[0];
+  let list=rows.filter(r=>r.followup);
+  if(view==='upcoming')list=list.filter(r=>r.followup>=today);
+  if(!list.length){
+    document.getElementById('schedule').innerHTML='<div class="empty">No '+(view==='upcoming'?'upcoming ':'')+'jobs on the schedule right now.</div>';
+    return;
+  }
+  // group by date
+  const groups={};
+  list.forEach(r=>{(groups[r.followup]=groups[r.followup]||[]).push(r);});
+  const html=Object.keys(groups).sort().map(date=>{
+    const jobs=groups[date];
+    const cards=jobs.map(j=>{
+      const done=j.status==='done';
+      return `<div class="job${done?' done':''}">
+        <div class="job-icon ${iconClass(j.type)}">${icon(j.type)}</div>
+        <div class="job-body">
+          <div class="job-town">${j.town||'Location TBC'}</div>
+          <div class="job-type">${typeLabel(j.type)}</div>
+        </div>
+        <span class="job-badge ${done?'b-done':'b-scheduled'}">${done?'Done':'Scheduled'}</span>
+      </div>`;
+    }).join('');
+    return `<div class="day-group">
+      <div class="day-head"><span class="dow">${dow(date)}</span> ${fmtDay(date).replace(dow(date),'').trim()}<span class="cnt">${jobs.length} job${jobs.length!==1?'s':''}</span></div>
+      ${cards}
+    </div>`;
+  }).join('');
+  document.getElementById('schedule').innerHTML=html;
+}
+
+// PIN
+let pinEntry='';
+function pinPress(d){if(pinEntry.length>=4)return;pinEntry+=d;updateDots();if(pinEntry.length===4)setTimeout(checkPin,150);}
+function pinDel(){pinEntry=pinEntry.slice(0,-1);document.getElementById('pin-error').textContent='';updateDots();}
+function updateDots(){for(let i=0;i<4;i++){const dot=document.getElementById('dot-'+i);dot.classList.toggle('filled',i<pinEntry.length);dot.classList.remove('error');}}
+function checkPin(){
+  if(pinEntry===CREW_PIN){sessionStorage.setItem('crew_pin','1');document.getElementById('pin-screen').style.display='none';load();}
+  else{for(let i=0;i<4;i++)document.getElementById('dot-'+i).classList.add('error');document.getElementById('pin-error').textContent='Incorrect PIN';setTimeout(()=>{pinEntry='';updateDots();},800);}
+}
+if(sessionStorage.getItem('crew_pin')==='1'){document.getElementById('pin-screen').style.display='none';load();}
+</script>
+</body>
+</html>
